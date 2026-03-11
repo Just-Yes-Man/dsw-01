@@ -95,6 +95,15 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Constitution Alignment *(mandatory)*
+
+- **CA-001**: The feature MUST run on Spring Boot 3 with Java 17, or document an approved exception.
+- **CA-002**: The feature MUST define Basic Authentication behavior for protected endpoints.
+- **CA-003**: The feature MUST define PostgreSQL persistence impact and Docker/Docker Compose needs.
+- **CA-004**: The feature MUST define Swagger/OpenAPI contract updates for every endpoint change with routes versioned as `/api/v{major}/...`.
+- **CA-005**: The feature MUST define pagination for collection queries with 10 instances per response.
+- **CA-006**: The feature MUST define required automated tests and logging/security evidence.
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]

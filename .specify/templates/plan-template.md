@@ -17,10 +17,10 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Language/Version**: [e.g., Java 17 (required by constitution) or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., Spring Boot 3, Spring Security, springdoc-openapi or NEEDS CLARIFICATION]  
+**Storage**: [e.g., PostgreSQL (required), N/A if no persistence]  
+**Testing**: [e.g., JUnit 5, Spring Boot Test, Testcontainers or NEEDS CLARIFICATION]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
@@ -31,7 +31,12 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] Stack gate: Uses Spring Boot 3 + Java 17, or includes approved RFC exception.
+- [ ] Security gate: Defines Basic Authentication scope, HTTPS requirement, and secret handling.
+- [ ] API gate: Includes Swagger/OpenAPI update plan for all new/changed endpoints with versioned routes (`/api/v{major}/...`).
+- [ ] Pagination gate: Defines collection query pagination with fixed page size of 10 instances per response.
+- [ ] Data gate: Uses PostgreSQL and Docker/Docker Compose strategy for local/CI parity.
+- [ ] Quality gate: Defines automated tests and structured logging coverage for critical flows.
 
 ## Project Structure
 

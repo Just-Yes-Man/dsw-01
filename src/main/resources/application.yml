@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:empleadosdb}
+    username: ${DB_USER:empleados}
+    password: ${DB_PASSWORD:empleados123}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+
+security:
+  basic:
+    user: ${BASIC_AUTH_USER:admin}
+    password: ${BASIC_AUTH_PASSWORD:admin123}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    com.dsw02.empleados: INFO
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} level=%p logger=%c trace=%X{traceId:-} msg="%m"%n'

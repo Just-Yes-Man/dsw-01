@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+Dockerfile*
+.dockerignore
+*.log*
+.env*
+node_modules/
+coverage/
+.vscode/
+.idea/

@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  title: API de Empleados
+  version: 1.0.0
+  description: Contrato para CRUD de empleados.
+servers:
+  - url: /
+security:
+  - basicAuth: []
+paths:
+  /api/v1/empleados:
+    post:
+      summary: Crear empleado
+      operationId: createEmpleado
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoCreateRequest'
+      responses:
+        '201':
+          description: Empleado creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      summary: Listar empleados
+      operationId: listEmpleados
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Lista de empleados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoPageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/empleados/{clave}:
+    get:
+      summary: Obtener empleado por clave
+      operationId: getEmpleadoByClave
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      responses:
+        '200':
+          description: Empleado encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Actualizar empleado
+      operationId: updateEmpleado
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoUpdateRequest'
+      responses:
+        '200':
+          description: Empleado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Eliminar empleado
+      operationId: deleteEmpleado
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      responses:
+        '204':
+          description: Empleado eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Clave:
+      name: clave
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^EMP-[0-9]+$'
+  schemas:
+    EmpleadoCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nombre
+        - direccion
+        - telefono
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 100
+        direccion:
+          type: string
+          minLength: 1
+          maxLength: 100
+        telefono:
+          type: string
+          minLength: 1
+          maxLength: 100
+    EmpleadoUpdateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nombre
+        - direccion
+        - telefono
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 100
+        direccion:
+          type: string
+          minLength: 1
+          maxLength: 100
+        telefono:
+          type: string
+          minLength: 1
+          maxLength: 100
+    EmpleadoResponse:
+      type: object
+      required:
+        - clave
+        - nombre
+        - direccion
+        - telefono
+      properties:
+        clave:
+          type: string
+          pattern: '^EMP-[0-9]+$'
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+    EmpleadoPageResponse:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - items
+      properties:
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          enum: [10]
+        totalElements:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/EmpleadoResponse'
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Credenciales inválidas o ausentes
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Empleado no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

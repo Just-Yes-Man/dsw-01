@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: API de Empleados - Paginación
+  version: 1.0.0
+  description: Contrato para consultas versionadas de empleados con paginación fija.
+servers:
+  - url: /
+security:
+  - basicAuth: []
+paths:
+  /api/v1/empleados:
+    get:
+      summary: Listar empleados paginados
+      operationId: listEmpleadosPaged
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Página de empleados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoPageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/empleados/{clave}:
+    get:
+      summary: Obtener empleado por clave
+      operationId: getEmpleadoByClave
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      responses:
+        '200':
+          description: Empleado encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Clave:
+      name: clave
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^EMP-[0-9]+$'
+  schemas:
+    EmpleadoResponse:
+      type: object
+      required:
+        - clave
+        - nombre
+        - direccion
+        - telefono
+      properties:
+        clave:
+          type: string
+          pattern: '^EMP-[0-9]+$'
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+    EmpleadoPageResponse:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - items
+      properties:
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          enum: [10]
+        totalElements:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/EmpleadoResponse'
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Credenciales inválidas o ausentes
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Empleado no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
