@@ -1,11 +1,15 @@
 package com.dsw02.empleados.dto;
 
+import com.dsw02.empleados.entity.EstadoAcceso;
+
 public class EmpleadoResponse {
 
     private String clave;
     private String nombre;
     private String direccion;
     private String telefono;
+    private String email;
+    private EstadoAcceso estadoAcceso;
 
     public String getClave() {
         return clave;
@@ -37,5 +41,21 @@ public class EmpleadoResponse {
 
     public void setTelefono(String telefono) {
         this.telefono = telefono;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public EstadoAcceso getEstadoAcceso() {
+        return estadoAcceso;
+    }
+
+    public void setEstadoAcceso(EstadoAcceso estadoAcceso) {
+        this.estadoAcceso = estadoAcceso;
     }
 }

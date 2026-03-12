@@ -6,6 +6,7 @@ import com.dsw02.empleados.dto.EmpleadoResponse;
 import com.dsw02.empleados.dto.EmpleadoUpdateRequest;
 import com.dsw02.empleados.entity.Empleado;
 import com.dsw02.empleados.entity.EmpleadoId;
+import com.dsw02.empleados.entity.EstadoAcceso;
 import com.dsw02.empleados.repository.EmpleadoRepository;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,10 @@ public class EmpleadoService {
 
     @Transactional
     public EmpleadoResponse create(EmpleadoCreateRequest request) {
+        if (empleadoRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("email ya está registrado");
+        }
+
         Long nextConsecutivo = empleadoRepository.findMaxConsecutivo() + 1;
         String clave = PREFIJO + nextConsecutivo;
 
@@ -41,6 +46,9 @@ public class EmpleadoService {
         empleado.setNombre(request.getNombre());
         empleado.setDireccion(request.getDireccion());
         empleado.setTelefono(request.getTelefono());
+        empleado.setEmail(request.getEmail());
+        empleado.setPassword(request.getPassword());
+        empleado.setEstadoAcceso(request.getEstadoAcceso() == null ? EstadoAcceso.ACTIVO : request.getEstadoAcceso());
 
         Empleado saved = empleadoRepository.save(empleado);
         LOGGER.info("event=empleado_created clave={} prefijo={} consecutivo={}", saved.getClave(), PREFIJO, nextConsecutivo);
@@ -85,9 +93,18 @@ public class EmpleadoService {
         Empleado empleado = empleadoRepository.findByClave(clave)
                 .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
 
+        empleadoRepository.findByEmail(request.getEmail())
+            .filter(existing -> !existing.getClave().equals(clave))
+            .ifPresent(existing -> {
+                throw new IllegalArgumentException("email ya está registrado");
+            });
+
         empleado.setNombre(request.getNombre());
         empleado.setDireccion(request.getDireccion());
         empleado.setTelefono(request.getTelefono());
+        empleado.setEmail(request.getEmail());
+        empleado.setPassword(request.getPassword());
+        empleado.setEstadoAcceso(request.getEstadoAcceso());
 
         Empleado saved = empleadoRepository.save(empleado);
         LOGGER.info("event=empleado_updated clave={}", saved.getClave());
@@ -109,6 +126,8 @@ public class EmpleadoService {
         response.setNombre(empleado.getNombre());
         response.setDireccion(empleado.getDireccion());
         response.setTelefono(empleado.getTelefono());
+        response.setEmail(empleado.getEmail());
+        response.setEstadoAcceso(empleado.getEstadoAcceso());
         return response;
     }
 }

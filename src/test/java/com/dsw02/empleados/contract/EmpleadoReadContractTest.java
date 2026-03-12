@@ -12,7 +12,9 @@ import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.EmpleadoController;
 import com.dsw02.empleados.dto.EmpleadoPageResponse;
 import com.dsw02.empleados.dto.EmpleadoResponse;
+import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
+import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.dsw02.empleados.service.ResourceNotFoundException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -26,8 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(controllers = EmpleadoController.class)
 @Import({SecurityConfig.class, SecurityUsersConfig.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = {
-        "security.basic.user=admin",
-        "security.basic.password=admin123"
+        "security.bootstrap.user=bootstrap_admin",
+        "security.bootstrap.password=bootstrap123"
 })
 class EmpleadoReadContractTest {
 
@@ -36,6 +38,12 @@ class EmpleadoReadContractTest {
 
     @MockBean
     private EmpleadoService empleadoService;
+
+        @MockBean
+        private EmpleadoUserDetailsService empleadoUserDetailsService;
+
+        @MockBean
+        private AuthLockoutService authLockoutService;
 
     @Test
     void shouldListAndGetByClave() throws Exception {
@@ -54,14 +62,14 @@ class EmpleadoReadContractTest {
         when(empleadoService.findAll(0)).thenReturn(pageResponse);
         when(empleadoService.findByClave("EMP-1")).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/empleados").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/v1/empleados").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(10))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.items[0].clave").value("EMP-1"));
 
-        mockMvc.perform(get("/api/v1/empleados/EMP-1").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/v1/empleados/EMP-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clave").value("EMP-1"));
     }
@@ -70,13 +78,13 @@ class EmpleadoReadContractTest {
     void shouldReturn404ForMissingClave() throws Exception {
         when(empleadoService.findByClave("EMP-99")).thenThrow(new ResourceNotFoundException("Empleado no encontrado"));
 
-        mockMvc.perform(get("/api/v1/empleados/EMP-99").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/v1/empleados/EMP-99").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void shouldRejectNegativePage() throws Exception {
-        mockMvc.perform(get("/api/v1/empleados?page=-1").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/v1/empleados?page=-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -88,4 +96,13 @@ class EmpleadoReadContractTest {
         mockMvc.perform(get("/api/v1/empleados/EMP-1"))
                 .andExpect(status().isUnauthorized());
     }
+
+        @Test
+        void shouldReturn423WhenAccountIsTemporarilyLocked() throws Exception {
+                when(authLockoutService.isBlocked("locked@example.com")).thenReturn(true);
+
+                mockMvc.perform(get("/api/v1/empleados?page=0").with(httpBasic("locked@example.com", "any")))
+                                .andExpect(status().isLocked())
+                                .andExpect(jsonPath("$.code").value("LOCKED"));
+        }
 }

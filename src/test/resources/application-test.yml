@@ -11,6 +11,6 @@ spring:
     enabled: false
 
 security:
-  basic:
-    user: admin
-    password: admin123
+  bootstrap:
+    user: bootstrap_admin
+    password: bootstrap123

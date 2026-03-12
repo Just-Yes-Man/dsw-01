@@ -3,6 +3,8 @@ package com.dsw02.empleados.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 @Entity
@@ -23,6 +25,16 @@ public class Empleado {
 
     @Column(name = "telefono", nullable = false, length = 100)
     private String telefono;
+
+    @Column(name = "email", nullable = false, unique = true, length = 255)
+    private String email;
+
+    @Column(name = "password", nullable = false, length = 255)
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_acceso", nullable = false, length = 20)
+    private EstadoAcceso estadoAcceso;
 
     public EmpleadoId getId() {
         return id;
@@ -62,5 +74,29 @@ public class Empleado {
 
     public void setTelefono(String telefono) {
         this.telefono = telefono;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public EstadoAcceso getEstadoAcceso() {
+        return estadoAcceso;
+    }
+
+    public void setEstadoAcceso(EstadoAcceso estadoAcceso) {
+        this.estadoAcceso = estadoAcceso;
     }
 }
