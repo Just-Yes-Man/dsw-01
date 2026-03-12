@@ -73,12 +73,8 @@ paths:
           schema:
             type: integer
             default: 0
-        - name: size
-          in: query
-          description: Number of results per page (fixed at 10)
-          schema:
-            type: integer
-            default: 10
+        # size is intentionally NOT a client parameter — page size is fixed at 10 per constitution (Principle III).
+        # Do not implement a &size= query parameter in the controller.
       responses:
         '200':
           description: Successfully retrieved paginated list of departments

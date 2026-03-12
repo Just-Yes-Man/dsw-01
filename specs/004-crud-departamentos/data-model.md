@@ -81,8 +81,9 @@ public class Departamento {
 ```java
 // In DepartamentoService.delete(id):
 if (empleadoRepository.existsByDepartamentoId(id)) {
-    throw new ConstraintViolationException("Cannot delete department with associated employees");
+    throw new DepartamentoConflictException("Cannot delete department with associated employees");
     // Returns HTTP 409 CONFLICT
+    // NOTE: Use DepartamentoConflictException, NOT jakarta.validation.ConstraintViolationException
 }
 // If no employees, proceed with soft-delete (update estado = INACTIVO)
 ```

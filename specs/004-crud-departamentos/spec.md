@@ -72,13 +72,12 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 - **FR-002**: System MUST validate that department name is not empty, not null, and not longer than 255 characters; return HTTP 400 if validation fails
 - **FR-003**: System MUST provide a paginated REST API endpoint to retrieve all departments with 10 departments per page (requires authentication via Basic Auth; only returns ACTIVO departments by default)
 - **FR-004**: System MUST allow authenticated users to update an existing department's name via PATCH endpoint (must also enforce uniqueness and length constraints on update)
-- **FR-005**: System MUST allow authenticated users to delete a department via DELETE endpoint, BUT mark as INACTIVE (soft-delete) instead of hard-deleting; only if no employees are assigned to the department; otherwise return HTTP 409 (Conflict)
+- **FR-005**: System MUST allow authenticated users to delete a department via DELETE endpoint, BUT mark as INACTIVE (soft-delete) instead of hard-deleting; only if no employees are assigned to the department (checked via EmpleadoRepository before soft-delete executes); otherwise return HTTP 409 (Conflict) *(referential integrity enforcement; supersedes removed FR-011)*
 - **FR-006**: System MUST return HTTP 404 when attempting to access a non-existent or INACTIVE department
 - **FR-007**: System MUST persist all department data in PostgreSQL and handle migrations automatically via Flyway
 - **FR-008**: System MUST provide Swagger/OpenAPI documentation for all department endpoints
 - **FR-009**: System MUST return HTTP 409 (Conflict) when attempting to create or update a department with a name that already exists
 - **FR-010**: System MUST return HTTP 401 (Unauthorized) for all endpoints when user is not authenticated via Basic Auth
-- **FR-011**: System MUST enforce referential integrity by preventing deletion of departments that have associated employees (checked before soft-delete is executed)
 - **FR-012**: System MUST set department estado to ACTIVO by default when creating a new department
 - **FR-013**: System MUST include estado field in all department API responses (read, list, create, update)
 - **FR-014**: System MUST return HTTP 400 with specific validation error message if department name exceeds 255 characters

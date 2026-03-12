@@ -19,6 +19,7 @@
 - [ ] T001 Create package structure `src/main/java/com/dsw02/departamentos/` with subdirectories: config/, controller/, dto/, entity/, exception/, repository/, service/
 - [ ] T002 Create test package structure `src/test/java/com/dsw02/departamentos/` with subdirectories: contract/, integration/, unit/
 - [ ] T003 [P] Create Flyway migration file `src/main/resources/db/migration/V3__departamentos_table.sql` with departamentos table, estado enum constraint, and indexes per data-model.md
+- [ ] T003b [P] Document migration rollback procedure for V3: create file `specs/004-crud-departamentos/rollback-v3.md` with the rollback SQL (`DROP TABLE IF EXISTS departamentos;`) and steps to execute it, satisfying constitution Gate 6 (schema changes MUST include rollback plan)
 - [ ] T004 [P] Verify EstadoAcceso enum exists in `src/main/java/com/dsw02/empleados/entity/EstadoAcceso.java` (reuse from empleados feature)
 
 ---
@@ -37,7 +38,7 @@
   - DepartamentoResponse (id, nombre, estado, timestamps)
 - [ ] T008 Create DepartamentoService with dependency injection of DepartamentoRepository in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
 - [ ] T009 [P] Create DepartamentoController with Route annotation for `/api/v1/departamentos` (placeholder methods for all 5 CRUD endpoints) in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-- [ ] T010 [P] Create custom exception class for constraint violations (e.g., `ConstraintViolationException`) in `src/main/java/com/dsw02/departamentos/exception/`
+- [ ] T010 [P] Create custom exception class `DepartamentoConflictException` (NOT `ConstraintViolationException` — that name clashes with `jakarta.validation.ConstraintViolationException` already on the classpath) in `src/main/java/com/dsw02/departamentos/exception/DepartamentoConflictException.java`
 - [ ] T011 Configure GlobalExceptionHandler (or extend existing one) to catch validation errors and constraint violations, returning HTTP 400/409 responses with standardized ErrorResponse format in `src/main/java/com/dsw02/empleados/config/GlobalExceptionHandler.java`
 - [ ] T012 Verify SecurityConfig in `src/main/java/com/dsw02/empleados/config/SecurityConfig.java` is correctly configured to intercept `/api/v1/departamentos/**` with Basic Auth requirement
 
@@ -73,7 +74,7 @@
 - [ ] T021 [US1] Implement DepartamentoService.create(DepartamentoCreateRequest) method:
   - Validate nombre (not null, not empty, max 255 chars)
   - Check for duplicate nombre via repository
-  - If duplicate found, throw ConstraintViolationException → HTTP 409
+  - If duplicate found, throw DepartamentoConflictException → HTTP 409
   - Create Departamento entity with estado = EstadoAcceso.ACTIVO
   - Persist to database (let Flyway handle timestamps)
   - Return DepartamentoResponse with created entity
@@ -137,9 +138,9 @@
   - Add logging for read operations in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
 
 - [ ] T041 [US2] Implement DepartamentoController.listDepartamentos() GET endpoint:
-  - Route: `GET /api/v1/departamentos?page=0&size=10`
-  - Parameter: @RequestParam(defaultValue=0) int page, @RequestParam(defaultValue=10) int size
-  - Call DepartamentoService.findAll(PageRequest.of(page, size))
+  - Route: `GET /api/v1/departamentos?page=0` (size is NOT a client parameter — fixed at 10 per constitution)
+  - Parameter: @RequestParam(defaultValue="0") int page only; page size MUST be hardcoded as 10
+  - Call DepartamentoService.findAll(PageRequest.of(page, 10)) — size is hardcoded, NOT passed from client
   - Response: HTTP 200 + PagedDepartamentoResponse (Page<DepartamentoResponse>)
   - Error handling: delegated to GlobalExceptionHandler
   - Add @GetMapping, @RequestParam annotations in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
@@ -193,7 +194,7 @@
   - Find department by ID and estado=ACTIVO (if not found → throw EntityNotFoundException → 404)
   - Validate nombre (not null, not empty, max 255 chars)
   - Check for duplicate nombre excluding current department (query by nombre AND estado=ACTIVO AND id!=currentId)
-  - If duplicate found, throw ConstraintViolationException → HTTP 409
+  - If duplicate found, throw DepartamentoConflictException → HTTP 409
   - Update entity's nombre field
   - Persist changes (JPA will auto-update actualizadoEn timestamp)
   - Return DepartamentoResponse with updated entity
@@ -201,8 +202,8 @@
 
 - [ ] T060 [US3] Implement DepartamentoService.delete(Long id) method:
   - Find department by ID and estado=ACTIVO (if not found → throw EntityNotFoundException → 404)
-  - Check if any employees are associated with this department via EmpleadoRepository.countByDepartamentoId(id)
-  - If count > 0, throw ConstraintViolationException with message indicating employees exist → HTTP 409
+  - Check if any employees are associated with this department via EmpleadoRepository.existsByDepartamentoId(id)
+  - If true, throw DepartamentoConflictException with message indicating employees exist → HTTP 409
   - Mark department estado = EstadoAcceso.INACTIVO (soft-delete)
   - Persist changes
   - Return void (no body)
