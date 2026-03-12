@@ -13,7 +13,9 @@ import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.EmpleadoController;
 import com.dsw02.empleados.dto.EmpleadoCreateRequest;
 import com.dsw02.empleados.dto.EmpleadoResponse;
+import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
+import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,8 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(controllers = EmpleadoController.class)
 @Import({SecurityConfig.class, SecurityUsersConfig.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = {
-        "security.basic.user=admin",
-        "security.basic.password=admin123"
+    "security.bootstrap.user=bootstrap_admin",
+    "security.bootstrap.password=bootstrap123"
 })
 class EmpleadoCreateContractTest {
 
@@ -37,6 +39,12 @@ class EmpleadoCreateContractTest {
     @MockBean
     private EmpleadoService empleadoService;
 
+    @MockBean
+    private EmpleadoUserDetailsService empleadoUserDetailsService;
+
+    @MockBean
+    private AuthLockoutService authLockoutService;
+
     @Test
     void shouldCreateEmpleado() throws Exception {
         EmpleadoResponse response = new EmpleadoResponse();
@@ -44,14 +52,16 @@ class EmpleadoCreateContractTest {
         response.setNombre("Ana");
         response.setDireccion("Calle 1");
         response.setTelefono("555-1234");
+        response.setEmail("ana@example.com");
+        response.setEstadoAcceso(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
 
         when(empleadoService.create(any(EmpleadoCreateRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("admin", "admin123"))
+                .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234"}
+                    {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.clave").value("EMP-1"));
@@ -62,7 +72,7 @@ class EmpleadoCreateContractTest {
         mockMvc.perform(post("/api/v1/empleados")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234"}
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
                                 """))
                 .andExpect(status().isUnauthorized());
     }

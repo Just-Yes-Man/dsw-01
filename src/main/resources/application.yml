@@ -19,9 +19,9 @@ spring:
       fail-on-unknown-properties: true
 
 security:
-  basic:
-    user: ${BASIC_AUTH_USER:admin}
-    password: ${BASIC_AUTH_PASSWORD:admin123}
+  bootstrap:
+    user: ${BOOTSTRAP_AUTH_USER:bootstrap_admin}
+    password: ${BOOTSTRAP_AUTH_PASSWORD:bootstrap123}
 
 springdoc:
   swagger-ui:

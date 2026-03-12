@@ -12,6 +12,10 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, EmpleadoId> 
 
     Optional<Empleado> findByClave(String clave);
 
+    Optional<Empleado> findByEmail(String email);
+
+    boolean existsByEmail(String email);
+
     Page<Empleado> findAllByOrderByIdConsecutivoAsc(Pageable pageable);
 
     @Query("select coalesce(max(e.id.consecutivo), 0) from Empleado e")
