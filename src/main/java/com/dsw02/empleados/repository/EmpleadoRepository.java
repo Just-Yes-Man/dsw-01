@@ -20,4 +20,6 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, EmpleadoId> 
 
     @Query("select coalesce(max(e.id.consecutivo), 0) from Empleado e")
     Long findMaxConsecutivo();
+
+    boolean existsByDepartamentoId(Long departamentoId);
 }

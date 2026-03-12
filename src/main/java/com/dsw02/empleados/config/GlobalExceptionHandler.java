@@ -1,5 +1,6 @@
 package com.dsw02.empleados.config;
 
+import com.dsw02.empleados.departamentos.exception.DepartamentoConflictException;
 import com.dsw02.empleados.dto.ErrorResponse;
 import com.dsw02.empleados.service.ResourceNotFoundException;
 import java.util.stream.Collectors;
@@ -28,6 +29,13 @@ public class GlobalExceptionHandler {
         LOGGER.warn("event=resource_not_found message=\"{}\"", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DepartamentoConflictException.class)
+    public ResponseEntity<ErrorResponse> handleDepartamentoConflict(DepartamentoConflictException ex) {
+        LOGGER.warn("event=departamento_conflict message=\"{}\"", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CONFLICT", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
