@@ -1,6 +1,9 @@
 package com.dsw02.empleados.dto;
 
+import com.dsw02.empleados.entity.EstadoAcceso;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
@@ -26,6 +29,18 @@ public class EmpleadoCreateRequest {
     @NotBlank(message = "telefono es obligatorio")
     @Size(max = 100, message = "telefono debe tener máximo 100 caracteres")
     private String telefono;
+
+    @NotBlank(message = "email es obligatorio")
+    @Email(message = "email debe tener formato válido")
+    @Size(max = 255, message = "email debe tener máximo 255 caracteres")
+    private String email;
+
+    @NotBlank(message = "password es obligatorio")
+    @Size(max = 255, message = "password debe tener máximo 255 caracteres")
+    private String password;
+
+    @NotNull(message = "estadoAcceso es obligatorio")
+    private EstadoAcceso estadoAcceso = EstadoAcceso.ACTIVO;
 
     public String getClave() {
         return clave;
@@ -73,5 +88,29 @@ public class EmpleadoCreateRequest {
 
     public void setTelefono(String telefono) {
         this.telefono = telefono;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public EstadoAcceso getEstadoAcceso() {
+        return estadoAcceso;
+    }
+
+    public void setEstadoAcceso(EstadoAcceso estadoAcceso) {
+        this.estadoAcceso = estadoAcceso;
     }
 }

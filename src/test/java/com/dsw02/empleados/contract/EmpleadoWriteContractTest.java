@@ -15,7 +15,9 @@ import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.EmpleadoController;
 import com.dsw02.empleados.dto.EmpleadoResponse;
 import com.dsw02.empleados.dto.EmpleadoUpdateRequest;
+import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
+import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -28,8 +30,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(controllers = EmpleadoController.class)
 @Import({SecurityConfig.class, SecurityUsersConfig.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = {
-        "security.basic.user=admin",
-        "security.basic.password=admin123"
+        "security.bootstrap.user=bootstrap_admin",
+        "security.bootstrap.password=bootstrap123"
 })
 class EmpleadoWriteContractTest {
 
@@ -39,6 +41,12 @@ class EmpleadoWriteContractTest {
     @MockBean
     private EmpleadoService empleadoService;
 
+        @MockBean
+        private EmpleadoUserDetailsService empleadoUserDetailsService;
+
+        @MockBean
+        private AuthLockoutService authLockoutService;
+
     @Test
     void shouldUpdateAndDelete() throws Exception {
         EmpleadoResponse response = new EmpleadoResponse();
@@ -46,20 +54,58 @@ class EmpleadoWriteContractTest {
         response.setNombre("Ana Maria");
         response.setDireccion("Calle 2");
         response.setTelefono("555-5678");
+        response.setEmail("ana@example.com");
+        response.setEstadoAcceso(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
 
         when(empleadoService.update(any(String.class), any(EmpleadoUpdateRequest.class))).thenReturn(response);
         doNothing().when(empleadoService).delete("EMP-1");
 
         mockMvc.perform(put("/api/v1/empleados/EMP-1")
-                        .with(httpBasic("admin", "admin123"))
+                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678"}
+                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana@example.com","password":"ana456","estadoAcceso":"ACTIVO"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clave").value("EMP-1"));
 
-        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void shouldReturn423WhenAccountIsTemporarilyLockedForWriteEndpoint() throws Exception {
+        when(authLockoutService.isBlocked("locked@example.com")).thenReturn(true);
+
+        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(httpBasic("locked@example.com", "any")))
+                .andExpect(status().isLocked())
+                .andExpect(jsonPath("$.code").value("LOCKED"));
+    }
+
+    @Test
+    void shouldRejectInvalidEmailFormatOnUpdate() throws Exception {
+        mockMvc.perform(put("/api/v1/empleados/EMP-1")
+                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"bad-email","password":"ana456","estadoAcceso":"ACTIVO"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void shouldRejectDuplicateEmailOnUpdate() throws Exception {
+        when(empleadoService.update(any(String.class), any(EmpleadoUpdateRequest.class)))
+                .thenThrow(new IllegalArgumentException("email ya está registrado"));
+
+        mockMvc.perform(put("/api/v1/empleados/EMP-1")
+                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"duplicado@example.com","password":"ana456","estadoAcceso":"ACTIVO"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 }
