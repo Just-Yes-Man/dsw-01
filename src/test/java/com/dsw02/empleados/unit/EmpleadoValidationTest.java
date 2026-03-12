@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.dsw02.empleados.dto.EmpleadoCreateRequest;
 import com.dsw02.empleados.dto.EmpleadoPageResponse;
 import com.dsw02.empleados.dto.EmpleadoResponse;
+import com.dsw02.empleados.entity.EstadoAcceso;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -30,6 +31,9 @@ class EmpleadoValidationTest {
         request.setNombre("A".repeat(101));
         request.setDireccion("Calle 1");
         request.setTelefono("555-1234");
+        request.setEmail("ana@example.com");
+        request.setPassword("ana123");
+        request.setEstadoAcceso(EstadoAcceso.ACTIVO);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("máximo 100")));
@@ -42,6 +46,9 @@ class EmpleadoValidationTest {
         request.setNombre("Ana");
         request.setDireccion("Calle 1");
         request.setTelefono("555-1234");
+        request.setEmail("ana@example.com");
+        request.setPassword("ana123");
+        request.setEstadoAcceso(EstadoAcceso.ACTIVO);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("clave")));
@@ -53,9 +60,26 @@ class EmpleadoValidationTest {
         request.setNombre("Ana");
         request.setDireccion("Calle 1");
         request.setTelefono("555-1234");
+        request.setEmail("ana@example.com");
+        request.setPassword("ana123");
+        request.setEstadoAcceso(EstadoAcceso.ACTIVO);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertFalse(violations.iterator().hasNext());
+    }
+
+    @Test
+    void shouldRejectInvalidEmailFormat() {
+        EmpleadoCreateRequest request = new EmpleadoCreateRequest();
+        request.setNombre("Ana");
+        request.setDireccion("Calle 1");
+        request.setTelefono("555-1234");
+        request.setEmail("not-an-email");
+        request.setPassword("ana123");
+        request.setEstadoAcceso(EstadoAcceso.ACTIVO);
+
+        Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("email")));
     }
 
     @Test

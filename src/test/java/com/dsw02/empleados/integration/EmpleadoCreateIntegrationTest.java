@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
 import com.dsw02.empleados.repository.EmpleadoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,18 +27,22 @@ class EmpleadoCreateIntegrationTest {
     @Autowired
     private EmpleadoRepository empleadoRepository;
 
+    @Autowired
+    private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
+
     @BeforeEach
     void setUp() {
+        bloqueoAutenticacionRepository.deleteAll();
         empleadoRepository.deleteAll();
     }
 
     @Test
     void shouldCreateEmpleado() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("admin", "admin123"))
+                .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234"}
+                    {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.clave").value("EMP-1"));
@@ -48,10 +53,10 @@ class EmpleadoCreateIntegrationTest {
         String longValue = "A".repeat(101);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("admin", "admin123"))
+                .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"%s","direccion":"Calle 1","telefono":"555-1234"}
+                    {"nombre":"%s","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
                                 """.formatted(longValue)))
                 .andExpect(status().isBadRequest());
     }
@@ -59,10 +64,10 @@ class EmpleadoCreateIntegrationTest {
     @Test
     void shouldRejectClientClaveInCreate() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("admin", "admin123"))
+                .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"clave":"EMP-999","nombre":"Ana","direccion":"Calle 1","telefono":"555-1234"}
+                    {"clave":"EMP-999","nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

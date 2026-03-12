@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: API de Empleados - Autenticación por Correo
+  version: 1.0.0
+  description: Contrato para gestión de empleados con autenticación Basic usando correo/contraseña.
+servers:
+  - url: /
+security:
+  - basicAuth: []
+paths:
+  /api/v1/empleados:
+    post:
+      summary: Crear empleado con credenciales de acceso
+      operationId: createEmpleado
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoCreateRequest'
+      responses:
+        '201':
+          description: Empleado creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          $ref: '#/components/responses/Locked'
+    get:
+      summary: Listar empleados paginados
+      operationId: listEmpleadosPaged
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Página de empleados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoPageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          $ref: '#/components/responses/Locked'
+  /api/v1/empleados/{clave}:
+    get:
+      summary: Obtener empleado por clave
+      operationId: getEmpleadoByClave
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      responses:
+        '200':
+          description: Empleado encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '423':
+          $ref: '#/components/responses/Locked'
+    put:
+      summary: Actualizar empleado y credenciales
+      operationId: updateEmpleado
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoUpdateRequest'
+      responses:
+        '200':
+          description: Empleado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          $ref: '#/components/responses/Locked'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Eliminar empleado
+      operationId: deleteEmpleado
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Clave'
+      responses:
+        '204':
+          description: Empleado eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          $ref: '#/components/responses/Locked'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Clave:
+      name: clave
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^EMP-[0-9]+$'
+  schemas:
+    EmpleadoCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nombre
+        - direccion
+        - telefono
+        - email
+        - password
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 100
+        direccion:
+          type: string
+          minLength: 1
+          maxLength: 100
+        telefono:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+          maxLength: 255
+        estadoAcceso:
+          $ref: '#/components/schemas/EstadoAcceso'
+    EmpleadoUpdateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nombre
+        - direccion
+        - telefono
+        - email
+        - password
+        - estadoAcceso
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 100
+        direccion:
+          type: string
+          minLength: 1
+          maxLength: 100
+        telefono:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+          maxLength: 255
+        estadoAcceso:
+          $ref: '#/components/schemas/EstadoAcceso'
+    EmpleadoResponse:
+      type: object
+      required:
+        - clave
+        - nombre
+        - direccion
+        - telefono
+        - email
+        - estadoAcceso
+      properties:
+        clave:
+          type: string
+          pattern: '^EMP-[0-9]+$'
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        estadoAcceso:
+          $ref: '#/components/schemas/EstadoAcceso'
+    EstadoAcceso:
+      type: string
+      enum: [ACTIVO, INACTIVO]
+    EmpleadoPageResponse:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - items
+      properties:
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          enum: [10]
+        totalElements:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/EmpleadoResponse'
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Credenciales inválidas o ausentes
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Locked:
+      description: Cuenta bloqueada temporalmente por intentos fallidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Empleado no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
