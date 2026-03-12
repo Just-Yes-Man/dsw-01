@@ -1,0 +1,351 @@
+openapi: 3.0.0
+info:
+  title: Departamentos CRUD API
+  description: Complete CRUD API for managing departments (organizaciones)
+  version: 1.0.0
+  contact:
+    name: DSW02 Team
+    url: https://github.com/Just-Yes-Man/dsw-01
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+security:
+  - basicAuth: []
+
+paths:
+  /api/v1/departamentos:
+    post:
+      summary: Create a new department
+      description: Creates a new department with a unique name. Requires Basic Authentication.
+      operationId: createDepartamento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartamentoCreateRequest'
+      responses:
+        '201':
+          description: Department created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoResponse'
+        '400':
+          description: Validation error (empty name, name > 255 chars, null values)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errorCode: VALIDATION_ERROR
+                message: Nombre must be between 1 and 255 characters
+        '401':
+          description: Unauthorized - missing or invalid Basic Auth credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - department name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errorCode: INTEGRITY_CONSTRAINT_VIOLATION
+                message: Department name 'Sales' already exists
+
+    get:
+      summary: List all active departments
+      description: Returns a paginated list of active departments (10 per page). Requires Basic Authentication.
+      operationId: listDepartamentos
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Number of results per page (fixed at 10)
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successfully retrieved paginated list of departments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDepartamentoResponse'
+        '401':
+          description: Unauthorized - missing or invalid Basic Auth credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/departamentos/{id}:
+    get:
+      summary: Get a specific department
+      description: Returns a single active department by ID. Returns 404 if department not found or is INACTIVO.
+      operationId: getDepartamento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Department ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successfully retrieved department
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoResponse'
+        '401':
+          description: Unauthorized - missing or invalid Basic Auth credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Department not found or is inactive (INACTIVO)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a department
+      description: Updates an existing department's name. Requires Basic Authentication.
+      operationId: updateDepartamento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Department ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartamentoUpdateRequest'
+      responses:
+        '200':
+          description: Department updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoResponse'
+        '400':
+          description: Validation error (empty name, name > 255 chars, null values)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - missing or invalid Basic Auth credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Department not found or is inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - new department name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a department (soft-delete)
+      description: |
+        Soft-deletes a department by marking it as INACTIVO.
+        Returns 409 CONFLICT if the department has associated employees.
+        Requires Basic Authentication.
+      operationId: deleteDepartamento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Department ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Department successfully deleted (soft-delete)
+        '401':
+          description: Unauthorized - missing or invalid Basic Auth credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Department not found or is already inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - department has associated employees and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errorCode: CONSTRAINT_VIOLATION
+                message: Cannot delete department with associated employees
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic Authentication (username:password in Base64)
+
+  schemas:
+    DepartamentoCreateRequest:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Department name (must be unique, 1-255 characters)
+          example: Sales
+      additionalProperties: false
+
+    DepartamentoUpdateRequest:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Department name (must be unique, 1-255 characters)
+          example: Sales & Marketing
+      additionalProperties: false
+
+    DepartamentoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Department ID (auto-generated)
+          example: 1
+        nombre:
+          type: string
+          maxLength: 255
+          description: Department name
+          example: Sales
+        estado:
+          type: string
+          enum:
+            - ACTIVO
+            - INACTIVO
+          description: Department state (ACTIVO by default)
+          example: ACTIVO
+        creadoEn:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: 2026-03-12T10:30:00
+        actualizadoEn:
+          type: string
+          format: date-time
+          description: Last update timestamp (ISO 8601)
+          example: 2026-03-12T10:30:00
+      required:
+        - id
+        - nombre
+        - estado
+        - creadoEn
+        - actualizadoEn
+
+    PagedDepartamentoResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartamentoResponse'
+          description: Array of departments in this page
+        totalElements:
+          type: integer
+          description: Total number of departments across all pages
+          example: 42
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 5
+        currentPage:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        pageSize:
+          type: integer
+          description: Number of items per page (fixed at 10)
+          example: 10
+        hasNext:
+          type: boolean
+          description: Whether there is a next page
+          example: true
+        hasPrevious:
+          type: boolean
+          description: Whether there is a previous page
+          example: false
+
+    ErrorResponse:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - VALIDATION_ERROR
+            - UNAUTHORIZED
+            - NOT_FOUND
+            - INTEGRITY_CONSTRAINT_VIOLATION
+            - CONSTRAINT_VIOLATION
+            - INTERNAL_SERVER_ERROR
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+          example: Nombre must be between 1 and 255 characters
+        details:
+          type: object
+          description: Additional error details (optional)
+          nullable: true
+      required:
+        - errorCode
+        - message
+
+tags:
+  - name: Departamentos
+    description: Department management endpoints
