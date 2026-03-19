@@ -12,6 +12,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-26
 - PostgreSQL (runtime), H2 (tests backend), almacenamiento de sesión en cookie segura (sin persistencia de credenciales en navegador) (001-empleados-login-angular)
 - Java 17 (backend), TypeScript (frontend Angular 22 LTS objetivo del feature) + Spring Boot 3.3.x, Spring Security, springdoc-openapi, Angular, RxJS, Cypress (006-crud-empleados-frontend)
 - PostgreSQL (runtime), H2 (tests backend), sesión por cookie segura para frontend (006-crud-empleados-frontend)
+- Java 17 (backend existente), TypeScript en Angular (frontend web; objetivo constitucional Angular 22 LTS) + Spring Boot 3, Spring Security, springdoc-openapi, Angular, RxJS, Cypress (005-crud-departamentos)
+- PostgreSQL en backend; sesión HTTP por cookie para autenticación de frontend (005-crud-departamentos)
 
 - Java 17 + Spring Boot 3 (Web, Data JPA, Validation), Spring Security (Basic Auth), springdoc-openapi (001-crud-empleados)
 
@@ -32,9 +34,9 @@ tests/
 Java 17: Follow standard conventions
 
 ## Recent Changes
+- 005-crud-departamentos: Added Java 17 (backend existente), TypeScript en Angular (frontend web; objetivo constitucional Angular 22 LTS) + Spring Boot 3, Spring Security, springdoc-openapi, Angular, RxJS, Cypress
 - 006-crud-empleados-frontend: Added Java 17 (backend), TypeScript (frontend Angular 22 LTS objetivo del feature) + Spring Boot 3.3.x, Spring Security, springdoc-openapi, Angular, RxJS, Cypress
 - 001-empleados-login-angular: Added Java 17 (backend), TypeScript (Angular 22 LTS frontend) + Spring Boot 3.3.x, Spring Security, springdoc-openapi, Angular 22 LTS, Cypress
-- 004-crud-departamentos: Added Java 17 + Spring Boot 3.3.x, Spring Security (Basic Auth), Spring Data JPA, Flyway, springdoc-openapi
 
 
 <!-- MANUAL ADDITIONS START -->

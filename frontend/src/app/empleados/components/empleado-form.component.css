@@ -1,15 +1,9 @@
-form {
-  display: grid;
-  gap: 0.5rem;
-  max-width: 520px;
-}
-
-.error {
-  color: #b42318;
+.field-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
 .actions {
   display: flex;
+  justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 0.75rem;
 }

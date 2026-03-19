@@ -1,0 +1,43 @@
+.login-shell {
+  min-height: calc(100vh - 3rem);
+  display: grid;
+  place-items: center;
+}
+
+.login-card {
+  width: min(460px, 100%);
+  background: var(--ow-surface);
+  border: 1px solid var(--ow-border);
+  border-radius: 16px;
+  box-shadow: var(--ow-shadow);
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.2rem;
+}
+
+.login-header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.eyebrow {
+  color: var(--ow-blue-600);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--ow-muted);
+  font-size: 0.92rem;
+}
+
+.login-form {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.login-submit {
+  margin-top: 0.2rem;
+}
