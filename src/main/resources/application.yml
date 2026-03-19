@@ -23,6 +23,14 @@ security:
     user: ${BOOTSTRAP_AUTH_USER:bootstrap_admin}
     password: ${BOOTSTRAP_AUTH_PASSWORD:bootstrap123}
 
+auth:
+  session:
+    idle-timeout-minutes: ${AUTH_SESSION_IDLE_TIMEOUT_MINUTES:480}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

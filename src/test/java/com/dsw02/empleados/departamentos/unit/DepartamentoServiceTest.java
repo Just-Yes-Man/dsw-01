@@ -3,12 +3,14 @@ package com.dsw02.empleados.departamentos.unit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dsw02.empleados.departamentos.dto.DepartamentoCreateRequest;
+import com.dsw02.empleados.departamentos.dto.DepartamentoDetailResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoPageResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoUpdateRequest;
@@ -106,9 +108,12 @@ class DepartamentoServiceTest {
         dep.setEstado(EstadoAcceso.ACTIVO);
 
         when(departamentoRepository.findByIdAndEstado(5L, EstadoAcceso.ACTIVO)).thenReturn(Optional.of(dep));
+        when(empleadoRepository.findTop50ByDepartamentoIdOrderByIdConsecutivoAsc(5L)).thenReturn(List.of());
 
-        DepartamentoResponse response = departamentoService.findById(5L);
+        DepartamentoDetailResponse response = departamentoService.findById(5L);
         assertEquals("Finanzas", response.getNombre());
+        assertNotNull(response.getEmpleados());
+        assertTrue(response.getEmpleados().isEmpty());
     }
 
     @Test

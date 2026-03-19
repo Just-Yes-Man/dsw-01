@@ -50,6 +50,7 @@ description: "Task list template for feature implementation"
 
 - [ ] T001 Create project structure per implementation plan
 - [ ] T002 Initialize Java 17 + Spring Boot 3 project dependencies
+- [ ] T002a [P] If frontend scope exists, initialize Angular 22 LTS workspace and app skeleton
 - [ ] T003 [P] Configure linting and formatting tools
 - [ ] T004 [P] Provision PostgreSQL with Docker/Docker Compose for local development
 
@@ -160,6 +161,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+- [ ] TXXX [P] Run Cypress E2E suite for critical frontend flows (if frontend scope exists)
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 

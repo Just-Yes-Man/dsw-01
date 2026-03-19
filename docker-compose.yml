@@ -35,5 +35,20 @@ services:
     ports:
       - "8080:8080"
 
+  frontend:
+    image: node:22-alpine
+    container_name: empleados-frontend
+    working_dir: /workspace/frontend
+    command: sh -c "npm install && npm run start -- --host 0.0.0.0 --port 4200"
+    volumes:
+      - ./:/workspace
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "4200:4200"
+    profiles:
+      - frontend
+
 volumes:
   pgdata:

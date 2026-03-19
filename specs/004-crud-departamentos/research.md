@@ -1,72 +1,74 @@
-# Research Phase: CRUD Departamentos
+# Research Phase: CRUD Departamentos + Relación 1:N
 
 **Date**: 12 de marzo de 2026  
-**Status**: Complete - All clarifications resolved in specification phase
+**Status**: Complete
 
-## Summary
+## Decision 1: Cardinalidad de dominio
 
-No remaining unknowns. All critical design decisions were clarified during specification phase `/speckit.clarify`.
+**Decision**: Modelar relación `Departamento (1) -> (N) Empleado`; cada empleado pertenece a un único departamento.
 
-## Decisions Recorded
+**Rationale**: Refleja estructura organizacional estándar, evita ambigüedad de pertenencia y simplifica validaciones de negocio y reporting.
 
-### D1: Department Name Uniqueness
-**Decision**: Enforce UNIQUE constraint at database level  
-**Rationale**: Prevents duplicate department names which could cause confusion in organizational hierarchy. Matches common enterprise practice.  
-**Alternatives Considered**: Allow duplicates (rejected - causes ambiguity in org structure)
+**Alternatives considered**:
+- N:M (empleado en múltiples departamentos) → Rechazada por complejidad extra no requerida.
+- Empleado sin relación de departamento → Rechazada por nuevo requerimiento explícito.
 
-### D2: Authorization Model
-**Decision**: Any authenticated user can perform CRUD operations (no role-based restrictions)  
-**Rationale**: Departamentos are foundational data; no specific departmental ownership model required. Simplifies permission management for MVP.  
-**Alternatives Considered**: Admin-only (rejected - business needs indicate broader access). Role-based RBAC (rejected - future enhancement candidate if needed)
+## Decision 2: Obligatoriedad de asignación
 
-### D3: Delete Behavior with Associated Employees
-**Decision**: Prevent deletion (return HTTP 409) if department has associated employees; require reassignment first  
-**Rationale**: Protects employee records from being orphaned or deleted indirectly. Maintains data integrity and audit trail.  
-**Alternatives Considered**: Cascade delete (rejected - employee records are authoritative). Soft-delete + reassign (rejected - requires complex business logic for current scope)
+**Decision**: `departamentoId` es obligatorio en create/update de empleado; `null` retorna HTTP 400.
 
-### D4: Entity Lifecycle State
-**Decision**: Add `estado` enum (ACTIVO/INACTIVO) for soft-delete semantics; mark as INACTIVO instead of hard-deleting  
-**Rationale**: Maintains consistency with empleados entity which uses same pattern. Enables audit trail and recovery capability. Matches architectural pattern.  
-**Alternatives Considered**: Optional state (rejected - empleados uses required state). Hard-delete (rejected - loses audit trail)
+**Rationale**: Alinea integridad funcional con el objetivo de modelar organización completa y evita estados incompletos.
 
-### D5: Long Name Validation
-**Decision**: Reject with HTTP 400 validation error if name exceeds 255 characters; no silent truncation  
-**Rationale**: Explicit validation prevents silent data loss and aligns with REST API best practices. Users get immediate feedback.  
-**Alternatives Considered**: Silent truncation (rejected - hides data loss). No validation (rejected - allows unbounded string storage)
+**Alternatives considered**:
+- Permitir `null` siempre → Rechazada por reglas funcionales acordadas.
+- Requerir sólo en create → Rechazada por inconsistencia operativa en update.
 
-## Technology Stack (Confirmed from Constitution)
+## Decision 3: Validez de referencia
 
-✅ **Language**: Java 17 (required by constitution)  
-✅ **Framework**: Spring Boot 3.3.2 (required by constitution)  
-✅ **Database**: PostgreSQL (required by constitution)  
-✅ **Testing**: JUnit 5, Spring Boot Test, MockMvc, Spring Security Test  
-✅ **API Documentation**: springdoc-openapi / Swagger UI  
-✅ **Authentication**: HTTP Basic Auth (inherited from SecurityConfig)  
-✅ **Persistence Layer**: Spring Data JPA  
-✅ **Validation**: Spring Validation (javax.validation)
+**Decision**: Sólo se permite asignar departamento existente y en estado ACTIVO; si no existe o está INACTIVO, responder HTTP 404.
 
-## Design Patterns to Apply
+**Rationale**: Evita asociaciones con entidades no operativas y mantiene coherencia con semántica de soft-delete.
 
-### Pattern 1: Enum Reuse for State Management
-**Apply**: Reuse existing `EstadoAcceso` enum from empleados instead of creating new enum  
-**Benefit**: Maintains architectural consistency, simplifies codebase, facilitates future shared reference tables
+**Alternatives considered**:
+- Permitir referencia a INACTIVO → Rechazada por incoherencia con lectura por defecto.
+- Retornar 409 en referencia inválida → Rechazada; semánticamente corresponde NOT_FOUND.
 
-### Pattern 2: Soft-Delete Implementation
-**Apply**: Mark records as INACTIVO instead of deleting; filter out INACTIVO in default queries  
-**Benefit**: Enables audit trail, supports recovery, maintains referential integrity for historical data
+## Decision 4: Representación en respuestas de empleado
 
-### Pattern 3: Unique Constraint at DB Level
-**Apply**: Add `UNIQUE` constraint in Flyway migration + `@UniqueConstraint` annotation  
-**Benefit**: Prevents duplicate inserts, enforces at database integrity layer, faster than application-level checking
+**Decision**: `EmpleadoResponse` incluirá objeto embebido `departamento` con `id`, `nombre`, `estado`.
 
-### Pattern 4: Pagination Convention
-**Apply**: Use `Page<T>` from Spring Data, fixed page size of 10 records per request  
-**Benefit**: Matches existing empleados pattern, deterministic pagination for API consumers
+**Rationale**: Mejora experiencia de consumidor API reduciendo roundtrips para datos básicos de relación.
 
-### Pattern 5: DTO Layering
-**Apply**: Create separate DTOs for CreateRequest, UpdateRequest, Response  
-**Benefit**: Decouples API contract from entity, allows flexible request/response shapes, version-independent
+**Alternatives considered**:
+- Exponer sólo `departamentoId` → Rechazada por requerimiento de representación embebida.
+- Exponer ambos (`id` + objeto) → Rechazada por redundancia innecesaria.
 
-## No Blockers
+## Decision 5: Representación en detalle de departamento
 
-All questions clarified. Ready to proceed to Phase 1 design and Phase 2 task generation.
+**Decision**: `GET /api/v1/departamentos/{id}` embebe lista `empleados` con tope fijo de 50 registros.
+
+**Rationale**: Proporciona visibilidad útil del detalle sin abrir endpoint adicional ni payload no acotado.
+
+**Alternatives considered**:
+- Sin embebido de empleados → Rechazada por requerimiento explícito.
+- Embebido sin límite → Rechazada por riesgo de payload excesivo.
+- Embebido paginado en mismo endpoint → Rechazada por complejidad adicional fuera de alcance.
+
+## Decision 6: Regla de borrado de departamento
+
+**Decision**: Mantener soft-delete (INACTIVO) y bloquear eliminación con HTTP 409 si hay empleados asociados.
+
+**Rationale**: Preserva integridad referencial y evita huérfanos de negocio.
+
+**Alternatives considered**:
+- Cascade delete de empleados → Rechazada por pérdida de datos.
+- Reasignación automática → Rechazada por ausencia de reglas de negocio para destino.
+
+## Decision 7: Consistencia con constitución
+
+**Decision**: Mantener stack y gates constitucionales: Java 17, Spring Boot 3, PostgreSQL en Docker, Basic Auth, OpenAPI y paginación fija de 10 para consultas de colección.
+
+**Rationale**: Minimiza deriva arquitectónica y mantiene compatibilidad con prácticas establecidas del repositorio.
+
+**Alternatives considered**:
+- Cambiar estrategia de paginación global o autenticación → Rechazada por incumplimiento constitucional.

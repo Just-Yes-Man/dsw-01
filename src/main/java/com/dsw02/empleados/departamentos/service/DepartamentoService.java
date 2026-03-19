@@ -1,13 +1,16 @@
 package com.dsw02.empleados.departamentos.service;
 
 import com.dsw02.empleados.departamentos.dto.DepartamentoCreateRequest;
+import com.dsw02.empleados.departamentos.dto.DepartamentoDetailResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoPageResponse;
+import com.dsw02.empleados.departamentos.dto.EmpleadoSummaryResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoUpdateRequest;
 import com.dsw02.empleados.departamentos.entity.Departamento;
 import com.dsw02.empleados.departamentos.exception.DepartamentoConflictException;
 import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
 import com.dsw02.empleados.entity.EstadoAcceso;
+import com.dsw02.empleados.entity.Empleado;
 import com.dsw02.empleados.repository.EmpleadoRepository;
 import com.dsw02.empleados.service.ResourceNotFoundException;
 import java.util.List;
@@ -71,11 +74,18 @@ public class DepartamentoService {
     }
 
     @Transactional(readOnly = true)
-    public DepartamentoResponse findById(Long id) {
+    public DepartamentoDetailResponse findById(Long id) {
         Departamento departamento = departamentoRepository.findByIdAndEstado(id, EstadoAcceso.ACTIVO)
                 .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+
+        List<EmpleadoSummaryResponse> empleados = empleadoRepository
+                .findTop50ByDepartamentoIdOrderByIdConsecutivoAsc(id)
+                .stream()
+                .map(this::toEmpleadoSummary)
+                .toList();
+
         LOGGER.info("event=departamento_read id={}", id);
-        return toResponse(departamento);
+        return toDetailResponse(departamento, empleados);
     }
 
     @Transactional
@@ -119,6 +129,27 @@ public class DepartamentoService {
         response.setEstado(departamento.getEstado());
         response.setCreadoEn(departamento.getCreadoEn());
         response.setActualizadoEn(departamento.getActualizadoEn());
+        return response;
+    }
+
+    private DepartamentoDetailResponse toDetailResponse(Departamento departamento,
+                                                        List<EmpleadoSummaryResponse> empleados) {
+        DepartamentoDetailResponse response = new DepartamentoDetailResponse();
+        response.setId(departamento.getId());
+        response.setNombre(departamento.getNombre());
+        response.setEstado(departamento.getEstado());
+        response.setCreadoEn(departamento.getCreadoEn());
+        response.setActualizadoEn(departamento.getActualizadoEn());
+        response.setEmpleados(empleados);
+        return response;
+    }
+
+    private EmpleadoSummaryResponse toEmpleadoSummary(Empleado empleado) {
+        EmpleadoSummaryResponse response = new EmpleadoSummaryResponse();
+        response.setClave(empleado.getClave());
+        response.setNombre(empleado.getNombre());
+        response.setEmail(empleado.getEmail());
+        response.setEstadoAcceso(empleado.getEstadoAcceso());
         return response;
     }
 }

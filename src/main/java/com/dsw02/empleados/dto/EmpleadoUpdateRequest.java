@@ -4,6 +4,7 @@ import com.dsw02.empleados.entity.EstadoAcceso;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
@@ -41,6 +42,10 @@ public class EmpleadoUpdateRequest {
 
     @NotNull(message = "estadoAcceso es obligatorio")
     private EstadoAcceso estadoAcceso;
+
+    @NotNull(message = "departamentoId es obligatorio")
+    @Positive(message = "departamentoId debe ser positivo")
+    private Long departamentoId;
 
     public String getClave() {
         return clave;
@@ -112,5 +117,13 @@ public class EmpleadoUpdateRequest {
 
     public void setEstadoAcceso(EstadoAcceso estadoAcceso) {
         this.estadoAcceso = estadoAcceso;
+    }
+
+    public Long getDepartamentoId() {
+        return departamentoId;
+    }
+
+    public void setDepartamentoId(Long departamentoId) {
+        this.departamentoId = departamentoId;
     }
 }

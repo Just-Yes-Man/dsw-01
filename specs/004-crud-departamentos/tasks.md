@@ -1,389 +1,220 @@
-# Tasks: CRUD Departamentos
+# Tasks: CRUD Departamentos + Relación 1:N con Empleados
 
-**Input**: Design documents from `/specs/004-crud-departamentos/`
-**Prerequisites**: plan.md ✓, spec.md ✓, research.md ✓, data-model.md ✓, contracts/openapi.yaml ✓
-**Status**: Implementation-ready - phases are prioritized and can be parallelized within each story
+**Input**: Design documents from `/specs/004-crud-departamentos/`  
+**Prerequisites**: `plan.md` (required), `spec.md` (required), `research.md`, `data-model.md`, `contracts/openapi.yaml`, `quickstart.md`
+
+**Tests**: Incluidos porque la especificación exige pruebas automatizadas (CA-006).  
+**Organization**: Tareas agrupadas por historia de usuario para implementación y validación independiente.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story (US1, US2, US3) - MVP scope in priority order
-- **Exact file paths** included in descriptions
+- **[P]**: Ejecutable en paralelo (archivos distintos, sin dependencia directa)
+- **[Story]**: US1, US2, US3 (solo fases de historias)
+- Cada tarea incluye ruta exacta de archivo
 
 ---
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and database foundation
+**Purpose**: Alinear base técnica y contrato de la feature
 
-- [x] T001 Create package structure `src/main/java/com/dsw02/departamentos/` with subdirectories: config/, controller/, dto/, entity/, exception/, repository/, service/
-- [x] T002 Create test package structure `src/test/java/com/dsw02/departamentos/` with subdirectories: contract/, integration/, unit/
-- [x] T003 [P] Create Flyway migration file `src/main/resources/db/migration/V3__departamentos_table.sql` with departamentos table, estado enum constraint, and indexes per data-model.md
-- [x] T003b [P] Document migration rollback procedure for V3: create file `specs/004-crud-departamentos/rollback-v3.md` with the rollback SQL (`DROP TABLE IF EXISTS departamentos;`) and steps to execute it, satisfying constitution Gate 6 (schema changes MUST include rollback plan)
-- [x] T004 [P] Verify EstadoAcceso enum exists in `src/main/java/com/dsw02/empleados/entity/EstadoAcceso.java` (reuse from empleados feature)
+- [X] T001 Verificar estructura de paquetes objetivo en `src/main/java/com/dsw02/empleados/departamentos/`
+- [X] T002 Verificar estructura de pruebas en `src/test/java/com/dsw02/empleados/departamentos/`
+- [X] T003 [P] Validar migraciones Flyway activas para departamentos/empleados en `src/main/resources/db/migration/` y documentar rollback en `specs/004-crud-departamentos/rollback.md`
+- [X] T004 [P] Validar configuración de autenticación básica para rutas `/api/v1/**` en `src/main/java/com/dsw02/empleados/config/SecurityConfig.java`
+- [X] T005 [P] Confirmar contrato base del feature en `specs/004-crud-departamentos/contracts/openapi.yaml`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core shared infrastructure that MUST complete before user stories
+**Purpose**: Infraestructura compartida obligatoria antes de implementar historias
 
-**⚠️ CRITICAL**: No user story work begins until Phase 2 completes
+**⚠️ CRITICAL**: Ninguna historia inicia sin completar esta fase
 
-- [x] T005 Create Departamento JPA entity with `@Entity`, `@Table`, `@UniqueConstraint(nombre)`, and fields (id, nombre, estado, creadoEn, actualizadoEn) in `src/main/java/com/dsw02/departamentos/entity/Departamento.java`
-- [x] T006 [P] Create DepartamentoRepository interface extending JpaRepository with custom methods: `findByIdAndEstado()`, `existsByNombreAndEstado()`, `findByEstado()` in `src/main/java/com/dsw02/departamentos/repository/DepartamentoRepository.java`
-- [x] T007 [P] Create DTO classes in `src/main/java/com/dsw02/departamentos/dto/`:
-  - DepartamentoCreateRequest (nombre field with @NotEmpty, @Size validation)
-  - DepartamentoUpdateRequest (nombre field with @NotEmpty, @Size validation)
-  - DepartamentoResponse (id, nombre, estado, timestamps)
-- [x] T008 Create DepartamentoService with dependency injection of DepartamentoRepository in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
-- [x] T009 [P] Create DepartamentoController with Route annotation for `/api/v1/departamentos` (placeholder methods for all 5 CRUD endpoints) in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-- [x] T010 [P] Create custom exception class `DepartamentoConflictException` (NOT `ConstraintViolationException` — that name clashes with `jakarta.validation.ConstraintViolationException` already on the classpath) in `src/main/java/com/dsw02/departamentos/exception/DepartamentoConflictException.java`
-- [x] T011 Configure GlobalExceptionHandler (or extend existing one) to catch validation errors and constraint violations, returning HTTP 400/409 responses with standardized ErrorResponse format in `src/main/java/com/dsw02/empleados/config/GlobalExceptionHandler.java`
-- [x] T012 Verify SecurityConfig in `src/main/java/com/dsw02/empleados/config/SecurityConfig.java` is correctly configured to intercept `/api/v1/departamentos/**` with Basic Auth requirement
+- [X] T006 Consolidar DTOs base de departamentos en `src/main/java/com/dsw02/empleados/departamentos/dto/`
+- [X] T007 [P] Consolidar entidad y repositorio de departamentos en `src/main/java/com/dsw02/empleados/departamentos/entity/Departamento.java` y `src/main/java/com/dsw02/empleados/departamentos/repository/DepartamentoRepository.java`
+- [X] T008 [P] Agregar consultas compartidas de empleados por departamento en `src/main/java/com/dsw02/empleados/repository/EmpleadoRepository.java`
+- [X] T009 Implementar/ajustar manejo global de errores 400/401/404/409 en `src/main/java/com/dsw02/empleados/config/GlobalExceptionHandler.java`
+- [X] T010 [P] Alinear tipos de respuesta paginada de departamentos en `src/main/java/com/dsw02/empleados/departamentos/dto/`
+- [X] T011 [P] Alinear mapeadores compartidos de empleados/departamentos en `src/main/java/com/dsw02/empleados/service/EmpleadoService.java` y `src/main/java/com/dsw02/empleados/departamentos/service/DepartamentoService.java`
+- [X] T012 Sincronizar contrato OpenAPI de componentes comunes (`ErrorResponse`, schemas compartidos) en `specs/004-crud-departamentos/contracts/openapi.yaml`
 
-**Checkpoint**: Foundation ready - all user story implementation can now begin in parallel across the 3 stories
+**Checkpoint**: Base lista; historias pueden avanzar en paralelo por prioridad
 
 ---
 
 ## Phase 3: User Story 1 - Crear Nuevo Departamento (Priority: P1) 🎯 MVP
 
-**Goal**: Allow any authenticated user to create a new department with validation for unique name and length constraints (max 255 chars). Returns HTTP 201 with created departamento details.
+**Goal**: Crear departamentos activos con validación estricta y unicidad.
 
-**Independent Test**: Can fully test by sending POST request with valid department name, verifying HTTP 201 response with id and estado=ACTIVO. Can also test validation errors (400) and duplicates (409) independently.
+**Independent Test**: `POST /api/v1/departamentos` devuelve 201 para payload válido, 400 para inválido y 409 para nombre duplicado.
 
-### Contract Tests for User Story 1
+### Tests for User Story 1
 
-- [x] T013 [P] [US1] Create contract test verifying POST `/api/v1/departamentos` accepts DepartamentoCreateRequest and returns DepartamentoResponse with estado=ACTIVO in `src/test/java/com/dsw02/departamentos/contract/DepartamentoCreateContractTest.java`
-- [x] T014 [P] [US1] Create contract test verifying HTTP 400 validation errors (empty name, name > 255 chars) in `src/test/java/com/dsw02/departamentos/contract/DepartamentoCreateContractTest.java`
-- [x] T015 [P] [US1] Create contract test verifying HTTP 409 conflict when duplicate name submitted in `src/test/java/com/dsw02/departamentos/contract/DepartamentoCreateContractTest.java`
-
-### Integration Tests for User Story 1
-
-- [x] T016 [P] [US1] Create integration test for successful department creation with Spring Boot test harness, verifying database persistence and response in `src/test/java/com/dsw02/departamentos/integration/DepartamentoCreateIntegrationTest.java`
-- [x] T017 [P] [US1] Create integration test for duplicate name constraint violation (HTTP 409) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoCreateIntegrationTest.java`
-- [x] T018 [P] [US1] Create integration test for validation errors (empty/null/too long name → HTTP 400) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoCreateIntegrationTest.java`
-
-### Unit Tests for User Story 1
-
-- [x] T019 [P] [US1] Create unit test for DepartamentoService.create() method validating inputs and calling repository in `src/test/java/com/dsw02/departamentos/unit/DepartamentoServiceTest.java`
-- [x] T020 [P] [US1] Create unit test for DTO validation annotations (OpenAPI @Schema, Jakarta @Size, @NotEmpty) in `src/test/java/com/dsw02/departamentos/unit/DepartamentoRequestValidationTest.java`
+- [X] T013 [P] [US1] Crear contrato de creación exitosa en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoCreateContractTest.java`
+- [X] T014 [P] [US1] Crear contrato de validación 400 (vacío/null/>255) en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoCreateContractTest.java`
+- [X] T015 [P] [US1] Crear contrato de conflicto 409 por nombre duplicado en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoCreateContractTest.java`
+- [X] T016 [P] [US1] Crear integración de persistencia de alta de departamento en `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoCreateIntegrationTest.java`
 
 ### Implementation for User Story 1
 
-- [x] T021 [US1] Implement DepartamentoService.create(DepartamentoCreateRequest) method:
-  - Validate nombre (not null, not empty, max 255 chars)
-  - Check for duplicate nombre via repository
-  - If duplicate found, throw DepartamentoConflictException → HTTP 409
-  - Create Departamento entity with estado = EstadoAcceso.ACTIVO
-  - Persist to database (let Flyway handle timestamps)
-  - Return DepartamentoResponse with created entity
-  - Add logging for successful creation in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
-  
-- [x] T022 [US1] Implement DepartamentoController.create() POST endpoint:
-  - Route: `POST /api/v1/departamentos`
-  - Request: @RequestBody DepartamentoCreateRequest with validation
-  - Call DepartamentoService.create()
-  - Response: HTTP 201 + DepartamentoResponse + Location header with new resource URL
-  - Error handling delegated to GlobalExceptionHandler (400, 409)
-  - Add @PostMapping, @RequestBody, @Validated annotations in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-  
-- [x] T023 [US1] Add logging for User Story 1 operations (successful creates, validation errors, constraint violations) using structured logging pattern from empleados in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
+- [X] T017 [US1] Implementar validación y unicidad de create en `src/main/java/com/dsw02/empleados/departamentos/service/DepartamentoService.java`
+- [X] T018 [US1] Implementar endpoint `POST /api/v1/departamentos` en `src/main/java/com/dsw02/empleados/departamentos/controller/DepartamentoController.java`
+- [X] T019 [US1] Ajustar respuesta create (`estado=ACTIVO`, timestamps) en `src/main/java/com/dsw02/empleados/departamentos/dto/DepartamentoResponse.java`
+- [X] T020 [US1] Actualizar contrato OpenAPI de creación de departamento en `specs/004-crud-departamentos/contracts/openapi.yaml`
 
-- [x] T024 [US1] Update Swagger/OpenAPI contract for POST endpoint - ensure spec in `specs/004-crud-departamentos/contracts/openapi.yaml` matches implementation (request schema, response schema, error responses)
+**Checkpoint**: US1 funcional e independiente
 
 ---
 
-## Phase 4: User Story 2 - Listar y Obtener Departamentos (Priority: P2)
+## Phase 4: User Story 2 - Listar Departamentos y Ver Detalle con Empleados (Priority: P2)
 
-**Goal**: Allow any authenticated user to retrieve departments with pagination (10 per page) and to read a single department. Only return ACTIVO departments in default queries. Full test independently of create/update/delete.
+**Goal**: Listar departamentos activos (10 por página) y obtener detalle por id con empleados embebidos (máximo 50).
 
-**Independent Test**: Can fully test by querying empty list (returns empty page), creating departments via DB or API, then verifying paginated list returns exactly 10 per page. Can also test 404 for non-existent IDs independently.
+**Independent Test**: `GET /api/v1/departamentos?page=0` respeta size fijo 10 y `GET /api/v1/departamentos/{id}` incluye `empleados[]` acotado a 50.
 
-### Contract Tests for User Story 2
+### Tests for User Story 2
 
-- [x] T025 [P] [US2] Create contract test verifying GET `/api/v1/departamentos` returns paginated list (Page object with content, totalElements, totalPages, size=10) in `src/test/java/com/dsw02/departamentos/contract/DepartamentoReadContractTest.java`
-- [x] T026 [P] [US2] Create contract test for empty list response (no departments exist) in `src/test/java/com/dsw02/departamentos/contract/DepartamentoReadContractTest.java`
-- [x] T027 [P] [US2] Create contract test for multiple pages (request page 2 when > 10 departments exist) in `src/test/java/com/dsw02/departamentos/contract/DepartamentoReadContractTest.java`
-- [x] T028 [P] [US2] Create contract test verifying GET `/api/v1/departamentos/{id}` returns single DepartamentoResponse in `src/test/java/com/dsw02/departamentos/contract/DepartamentoReadContractTest.java`
-- [x] T029 [P] [US2] Create contract test verifying HTTP 404 when department ID not found in `src/test/java/com/dsw02/departamentos/contract/DepartamentoReadContractTest.java`
-
-### Integration Tests for User Story 2
-
-- [x] T030 [P] [US2] Create integration test verifying GET with 0 departments returns empty paginated response in `src/test/java/com/dsw02/departamentos/integration/DepartamentoReadIntegrationTest.java`
-- [x] T031 [P] [US2] Create integration test for pagination: insert 15 departments, verify page 0 returns 10, page 1 returns 5 in `src/test/java/com/dsw02/departamentos/integration/DepartamentoReadIntegrationTest.java`
-- [x] T032 [P] [US2] Create integration test verifying GET by ID returns matching department in `src/test/java/com/dsw02/departamentos/integration/DepartamentoReadIntegrationTest.java`
-- [x] T033 [P] [US2] Create integration test verifying GET by ID returns HTTP 404 for non-existent ID in `src/test/java/com/dsw02/departamentos/integration/DepartamentoReadIntegrationTest.java`
-- [x] T034 [P] [US2] Create integration test verifying INACTIVE departments are NOT returned in list queries (soft-delete filtering) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoReadIntegrationTest.java`
-- [x] T035 [P] [US2] Create integration test for performance: verify GET queries complete < 500ms p95 for 1000 departments in `src/test/java/com/dsw02/departamentos/integration/DepartamentoReadIntegrationTest.java`
-
-### Unit Tests for User Story 2
-
-- [x] T036 [P] [US2] Create unit test for DepartamentoService.findAll(Pageable) with pagination logic in `src/test/java/com/dsw02/departamentos/unit/DepartamentoServiceTest.java`
-- [x] T037 [P] [US2] Create unit test for DepartamentoService.findById() returning Optional in `src/test/java/com/dsw02/departamentos/unit/DepartamentoServiceTest.java`
-- [x] T038 [P] [US2] Create unit test verifying estado=ACTIVO filter is applied in repository queries in `src/test/java/com/dsw02/departamentos/unit/DepartamentoRepositoryTest.java`
+- [X] T021 [P] [US2] Crear contrato de listado paginado fijo en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoReadContractTest.java`
+- [X] T022 [P] [US2] Crear contrato de detalle por id con empleados embebidos en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoReadContractTest.java`
+- [X] T023 [P] [US2] Crear contrato 404 para departamento inexistente/inactivo en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoReadContractTest.java`
+- [X] T024 [P] [US2] Crear integración de paginación (10 por página) en `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoReadIntegrationTest.java`
+- [X] T025 [P] [US2] Crear integración de embebido de empleados con límite 50 en `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoReadIntegrationTest.java`
 
 ### Implementation for User Story 2
 
-- [x] T039 [US2] Implement DepartamentoService.findAll(Pageable) method:
-  - Query repository for all ACTIVO departments (WHERE estado = 'ACTIVO')
-  - Apply pagination (pageSize fixed at 10 as per constitution)
-  - Return Page<DepartamentoResponse> mapped from entities
-  - Add logging for list queries in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
+- [X] T026 [US2] Implementar listado de departamentos activos con page-size fijo 10 en `src/main/java/com/dsw02/empleados/departamentos/service/DepartamentoService.java`
+- [X] T027 [US2] Implementar query eficiente de empleados por departamento (evitar N+1) en `src/main/java/com/dsw02/empleados/repository/EmpleadoRepository.java`
+- [X] T028 [US2] Implementar detalle de departamento con `empleados[]` (cap 50) en `src/main/java/com/dsw02/empleados/departamentos/service/DepartamentoService.java`
+- [X] T029 [US2] Implementar endpoints `GET /api/v1/departamentos` y `GET /api/v1/departamentos/{id}` en `src/main/java/com/dsw02/empleados/departamentos/controller/DepartamentoController.java`
+- [X] T030 [US2] Definir DTO de detalle con empleados embebidos en `src/main/java/com/dsw02/empleados/departamentos/dto/DepartamentoDetailResponse.java`
+- [X] T031 [US2] Actualizar contrato OpenAPI de listado/detalle de departamentos en `specs/004-crud-departamentos/contracts/openapi.yaml`
 
-- [x] T040 [US2] Implement DepartamentoService.findById(id) method:
-  - Query repository by ID and estado=ACTIVO
-  - If not found, throw EntityNotFoundException → HTTP 404
-  - Return DepartamentoResponse with found entity
-  - Add logging for read operations in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
-
-- [x] T041 [US2] Implement DepartamentoController.listDepartamentos() GET endpoint:
-  - Route: `GET /api/v1/departamentos?page=0` (size is NOT a client parameter — fixed at 10 per constitution)
-  - Parameter: @RequestParam(defaultValue="0") int page only; page size MUST be hardcoded as 10
-  - Call DepartamentoService.findAll(PageRequest.of(page, 10)) — size is hardcoded, NOT passed from client
-  - Response: HTTP 200 + PagedDepartamentoResponse (Page<DepartamentoResponse>)
-  - Error handling: delegated to GlobalExceptionHandler
-  - Add @GetMapping, @RequestParam annotations in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-
-- [x] T042 [US2] Implement DepartamentoController.getDepartamento() GET by ID endpoint:
-  - Route: `GET /api/v1/departamentos/{id}`
-  - Parameter: @PathVariable Long id
-  - Call DepartamentoService.findById(id)
-  - Response: HTTP 200 + DepartamentoResponse
-  - Error handling: delegated to GlobalExceptionHandler (404)
-  - Add @GetMapping("{id}"), @PathVariable annotations in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-
-- [x] T043 [US2] Add logging for User Story 2 operations (successful reads, 404 errors) in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
-
-- [x] T044 [US2] Update Swagger/OpenAPI contract for GET endpoints - verify spec in `specs/004-crud-departamentos/contracts/openapi.yaml` matches implementation
+**Checkpoint**: US2 funcional e independiente
 
 ---
 
-## Phase 5: User Story 3 - Actualizar y Eliminar Departamentos (Priority: P3)
+## Phase 5: User Story 3 - Actualizar/Eliminar Departamento y Validar Relación en Empleados (Priority: P3)
 
-**Goal**: Allow any authenticated user to update department names (with validation and uniqueness check) and soft-delete departments. Prevent deletion if employees are associated (HTTP 409). Only allow update/delete of ACTIVO departments.
+**Goal**: Actualizar y soft-delete de departamentos con regla 409 si existen empleados asociados, y exigir `departamentoId` válido en create/update de empleado con respuesta embebida.
 
-**Independent Test**: Can fully test by creating department, updating name, verifying change, and deleting. Can test prevent-delete-with-employees by mocking employee repository separately.
+**Independent Test**: PATCH/DELETE de departamentos cumple 200/204/404/409 y create/update de empleado exige `departamentoId`, devuelve 404 para referencia inválida e incluye `departamento` embebido.
 
-### Contract Tests for User Story 3
+### Tests for User Story 3
 
-- [x] T045 [P] [US3] Create contract test verifying PATCH `/api/v1/departamentos/{id}` accepts DepartamentoUpdateRequest and returns updated DepartamentoResponse in `src/test/java/com/dsw02/departamentos/contract/DepartamentoWriteContractTest.java`
-- [x] T046 [P] [US3] Create contract test for PATCH validation errors (empty name, name > 255 chars) returning HTTP 400 in `src/test/java/com/dsw02/departamentos/contract/DepartamentoWriteContractTest.java`
-- [x] T047 [P] [US3] Create contract test for PATCH duplicate name conflict (HTTP 409) in `src/test/java/com/dsw02/departamentos/contract/DepartamentoWriteContractTest.java`
-- [x] T048 [P] [US3] Create contract test verifying DELETE `/api/v1/departamentos/{id}` with no employees returns HTTP 204 in `src/test/java/com/dsw02/departamentos/contract/DepartamentoWriteContractTest.java`
-- [x] T049 [P] [US3] Create contract test verifying DELETE with associated employees returns HTTP 409 Conflict in `src/test/java/com/dsw02/departamentos/contract/DepartamentoWriteContractTest.java`
-- [x] T050 [P] [US3] Create contract test verifying HTTP 404 when updating/deleting non-existent department in `src/test/java/com/dsw02/departamentos/contract/DepartamentoWriteContractTest.java`
-
-### Integration Tests for User Story 3
-
-- [x] T051 [P] [US3] Create integration test for successful PATCH operation (update nombre and verify in DB) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoUpdateIntegrationTest.java`
-- [x] T052 [P] [US3] Create integration test for PATCH validation errors (empty/null/too-long name) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoUpdateIntegrationTest.java`
-- [x] T053 [P] [US3] Create integration test for PATCH duplicate name constraint violation (HTTP 409) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoUpdateIntegrationTest.java`
-- [x] T054 [P] [US3] Create integration test for successful soft-delete (DELETE marks as INACTIVO, not hard-deleted) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoUpdateIntegrationTest.java`
-- [x] T055 [P] [US3] Create integration test for DELETE prevention when employees assigned (mock EmpleadoRepository.existsByDepartamentoId() → true, verify HTTP 409) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoUpdateIntegrationTest.java`
-- [x] T056 [P] [US3] Create integration test verifying PATCH/DELETE return 404 for INACTIVE departments (soft-delete semantics) in `src/test/java/com/dsw02/departamentos/integration/DepartamentoUpdateIntegrationTest.java`
-
-### Unit Tests for User Story 3
-
-- [x] T057 [P] [US3] Create unit test for DepartamentoService.update() method validating inputs, checking duplicates (excluding current), and persisting changes in `src/test/java/com/dsw02/departamentos/unit/DepartamentoServiceTest.java`
-- [x] T058 [P] [US3] Create unit test for DepartamentoService.delete() method checking employees association and marking as INACTIVO in `src/test/java/com/dsw02/departamentos/unit/DepartamentoServiceTest.java`
+- [X] T032 [P] [US3] Crear contrato PATCH departamento (200/400/404/409) en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoWriteContractTest.java`
+- [X] T033 [P] [US3] Crear contrato DELETE departamento (204/404/409) en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoWriteContractTest.java`
+- [X] T034 [P] [US3] Crear integración de soft-delete y exclusión de INACTIVO en `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoWriteIntegrationTest.java`
+- [X] T035 [P] [US3] Crear integración de bloqueo 409 al borrar departamento con empleados en `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoWriteIntegrationTest.java`
+- [X] T036 [P] [US3] Crear contrato de empleado create/update con `departamentoId` obligatorio en `src/test/java/com/dsw02/empleados/contract/EmpleadoCreateContractTest.java` y `src/test/java/com/dsw02/empleados/contract/EmpleadoWriteContractTest.java`
+- [X] T037 [P] [US3] Crear integración de empleado con departamento válido/inválido/inactivo en `src/test/java/com/dsw02/empleados/integration/EmpleadoCreateIntegrationTest.java` y `src/test/java/com/dsw02/empleados/integration/EmpleadoWriteIntegrationTest.java`
+- [X] T038 [P] [US3] Crear pruebas de lectura de empleado con objeto `departamento` embebido en `src/test/java/com/dsw02/empleados/contract/EmpleadoReadContractTest.java` y `src/test/java/com/dsw02/empleados/integration/EmpleadoReadIntegrationTest.java`
 
 ### Implementation for User Story 3
 
-- [x] T059 [US3] Implement DepartamentoService.update(Long id, DepartamentoUpdateRequest) method:
-  - Find department by ID and estado=ACTIVO (if not found → throw EntityNotFoundException → 404)
-  - Validate nombre (not null, not empty, max 255 chars)
-  - Check for duplicate nombre excluding current department (query by nombre AND estado=ACTIVO AND id!=currentId)
-  - If duplicate found, throw DepartamentoConflictException → HTTP 409
-  - Update entity's nombre field
-  - Persist changes (JPA will auto-update actualizadoEn timestamp)
-  - Return DepartamentoResponse with updated entity
-  - Add logging for update operations in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
+- [X] T039 [US3] Implementar update de departamento (unicidad, validaciones, 404 para INACTIVO/no existente) en `src/main/java/com/dsw02/empleados/departamentos/service/DepartamentoService.java`
+- [X] T040 [US3] Implementar soft-delete con verificación `existsByDepartamentoId` y conflicto 409 en `src/main/java/com/dsw02/empleados/departamentos/service/DepartamentoService.java`
+- [X] T041 [US3] Implementar endpoints `PATCH` y `DELETE` de departamentos en `src/main/java/com/dsw02/empleados/departamentos/controller/DepartamentoController.java`
+- [X] T042 [US3] Exigir `departamentoId` no nulo y positivo en `src/main/java/com/dsw02/empleados/dto/EmpleadoCreateRequest.java` y `src/main/java/com/dsw02/empleados/dto/EmpleadoUpdateRequest.java`
+- [X] T043 [US3] Validar departamento ACTIVO en create/update de empleado en `src/main/java/com/dsw02/empleados/service/EmpleadoService.java`
+- [X] T044 [US3] Reemplazar `departamentoId` en respuesta por objeto `departamento` embebido en `src/main/java/com/dsw02/empleados/dto/EmpleadoResponse.java` y `src/main/java/com/dsw02/empleados/service/EmpleadoService.java`
+- [X] T045 [US3] Actualizar contrato OpenAPI para respuestas de empleado y flujos write de departamento en `specs/004-crud-departamentos/contracts/openapi.yaml`
 
-- [x] T060 [US3] Implement DepartamentoService.delete(Long id) method:
-  - Find department by ID and estado=ACTIVO (if not found → throw EntityNotFoundException → 404)
-  - Check if any employees are associated with this department via EmpleadoRepository.existsByDepartamentoId(id)
-  - If true, throw DepartamentoConflictException with message indicating employees exist → HTTP 409
-  - Mark department estado = EstadoAcceso.INACTIVO (soft-delete)
-  - Persist changes
-  - Return void (no body)
-  - Add logging for delete operations in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
-
-- [x] T061 [US3] Implement DepartamentoController.updateDepartamento() PATCH endpoint:
-  - Route: `PATCH /api/v1/departamentos/{id}`
-  - Parameter: @PathVariable Long id
-  - Request: @RequestBody DepartamentoUpdateRequest with validation
-  - Call DepartamentoService.update(id, request)
-  - Response: HTTP 200 + DepartamentoResponse
-  - Error handling: delegated to GlobalExceptionHandler (400, 404, 409)
-  - Add @PatchMapping("{id}"), @RequestBody, @Validated annotations in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-
-- [x] T062 [US3] Implement DepartamentoController.deleteDepartamento() DELETE endpoint:
-  - Route: `DELETE /api/v1/departamentos/{id}`
-  - Parameter: @PathVariable Long id
-  - Call DepartamentoService.delete(id)
-  - Response: HTTP 204 No Content (no body)
-  - Error handling: delegated to GlobalExceptionHandler (404, 409)
-  - Add @DeleteMapping("{id}") annotation in `src/main/java/com/dsw02/departamentos/controller/DepartamentoController.java`
-
-- [x] T063 [US3] Add logging for User Story 3 operations (successful updates/deletes, validation errors, constraint violations) in `src/main/java/com/dsw02/departamentos/service/DepartamentoService.java`
-
-- [x] T064 [US3] Update Swagger/OpenAPI contract for PATCH/DELETE endpoints - verify spec in `specs/004-crud-departamentos/contracts/openapi.yaml` matches implementation
+**Checkpoint**: US3 funcional e independiente
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-**Purpose**: Final validation, documentation, and integration polish
+**Purpose**: Cierre de calidad, documentación y validación E2E
 
-- [x] T065 Run full test suite: `mvn test` - verify all contract, integration, and unit tests pass (100% pass rate required per SC-004)
-
-- [x] T066 [P] Verify all endpoints return standardized error responses via GlobalExceptionHandler with errorCode + message format
-
-- [x] T067 [P] Add JavaDoc comments to all public methods in DepartamentoService and DepartamentoController explaining inputs, outputs, errors, and examples
-
-- [x] T068 [P] Ensure Swagger UI endpoint is accessible at http://localhost:8080/swagger-ui.html and displays all 5 CRUD operations with proper request/response schemas
-
-- [x] T069 [P] Verify department name validation rejects special edge cases: null, empty string, whitespace-only, very long (> 255), non-UTF8 characters if applicable
-
-- [x] T070 [P] Verify pagination parameter ?page=0&size=10 works correctly and size is always 10 (fixed per constitution)
-
-- [x] T071 [P] Verify Basic Auth inheritance from SecurityConfig - all endpoints require Authorization header with valid credentials
-
-- [x] T072 [P] Verify soft-delete semantics: INACTIVE departments are never returned in GET/LIST queries, PATCH/DELETE on INACTIVE department returns 404
-
-- [x] T073 [P] Verify performance goal met: run load test with 1000 CRUD operations, confirm p95 < 500ms per SC-001
-
-- [x] T074 [P] Verify database constraints: UNIQUE(nombre) prevents duplicate inserts, CHECK(estado IN ('ACTIVO', 'INACTIVO')) prevents invalid states
-
-- [x] T075 Commit all implementation code to feature branch `004-crud-departamentos` with meaningful commit messages
-
-- [x] T076 Create pull request from `004-crud-departamentos` → `develop` with test evidence and summary of all 5 CRUD operations
-
-- [x] T077 [P] Update project-level README.md with reference to Departamentos API and link to Swagger documentation
-
-- [x] T078 [P] Verify Flyway migration V3__departamentos_table.sql executes successfully on clean database (run with `mvn flyway:clean flyway:migrate`)
+- [X] T046 [P] Ejecutar suite completa de pruebas en repositorio con `mvn test`
+- [X] T047 [P] Verificar quickstart E2E (Docker + curl) en `specs/004-crud-departamentos/quickstart.md`
+- [X] T048 [P] Verificar performance objetivo p95 < 500ms en pruebas de integración de lectura/escritura en `src/test/java/com/dsw02/empleados/departamentos/integration/`
+- [X] T049 [P] Revisar y alinear manejo de errores estándar (`code`, `message`) en `src/main/java/com/dsw02/empleados/config/GlobalExceptionHandler.java`
+- [X] T050 [P] Ajustar documentación final de feature en `specs/004-crud-departamentos/spec.md`, `specs/004-crud-departamentos/plan.md` y `specs/004-crud-departamentos/quickstart.md`
+- [X] T051 [P] Agregar pruebas contract de respuesta 401 sin credenciales en `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoCreateContractTest.java`, `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoReadContractTest.java` y `src/test/java/com/dsw02/empleados/departamentos/contract/DepartamentoWriteContractTest.java`
+- [X] T052 [P] Agregar pruebas integration de respuesta 401 sin credenciales en `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoCreateIntegrationTest.java`, `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoReadIntegrationTest.java` y `src/test/java/com/dsw02/empleados/departamentos/integration/DepartamentoWriteIntegrationTest.java`
+- [X] T053 [P] Agregar pruebas 401 para endpoints de empleados impactados en `src/test/java/com/dsw02/empleados/contract/EmpleadoCreateContractTest.java`, `src/test/java/com/dsw02/empleados/contract/EmpleadoReadContractTest.java` y `src/test/java/com/dsw02/empleados/contract/EmpleadoWriteContractTest.java`
 
 ---
 
-## Task Execution Guide
+## Dependencies & Execution Order
 
-### Suggested Implementation Order (Maximizes Parallelization)
+### Phase Dependencies
 
-**Phase 1 (Setup)**: T001-T004 (sequential, all small)
-↓
-**Phase 2 (Foundation)**: T005-T012 (can parallelize T006, T007, T009, T010 after T005)
-↓  
-**Phases 3, 4, 5 (User Stories)**: Can execute IN PARALLEL across the 3 stories:
-- T013-T024 (US1 Create) in parallel with T025-T044 (US2 List/Read) in parallel with T045-T064 (US3 Update/Delete)
-- Each story's tests (contract/integration/unit) should build before implementation tasks
-↓
-**Phase 6 (Polish)**: After all stories complete, run T065-T078 for validation and finalization
+- **Phase 1 (Setup)**: sin dependencias
+- **Phase 2 (Foundational)**: depende de Phase 1 y bloquea historias
+- **Phase 3/4/5 (US1/US2/US3)**: dependen de Phase 2
+- **Phase 6 (Polish)**: depende de completar historias objetivo
 
-### Estimated Effort
+### User Story Dependencies
 
-| Phase | Tasks | Est. Time | Dependencies |
-|-------|-------|-----------|--------------|
-| **Phase 1** | T001-T004 | 1-2 hours | None |
-| **Phase 2** | T005-T012 | 2-3 hours | Phase 1 |
-| **Phase 3** | T013-T024 | 4-6 hours | Phase 2 |
-| **Phase 4** | T025-T044 | 5-7 hours | Phase 2 (can start with Phase 3) |
-| **Phase 5** | T045-T064 | 5-7 hours | Phase 2 (can start with Phase 3) |
-| **Phase 6** | T065-T078 | 2-3 hours | All phases |
-| **TOTAL** | **78 tasks** | **20-30 hours** | Sequential phases; parallel stories |
+- **US1 (P1)**: inicia al terminar Foundational; no depende de otras historias
+- **US2 (P2)**: inicia al terminar Foundational; usa base de departamentos de US1 pero es testeable de forma independiente
+- **US3 (P3)**: inicia al terminar Foundational; integra reglas de departamentos y empleados
 
-### Test-First Workflow (Recommended)
+### Within Each User Story
 
-For each user story, implement in this order:
-1. Contract tests (T013-T015, T025-T029, T045-T050)
-2. Integration tests (T016-T018, T030-T035, T051-T056)
-3. Unit tests (T019-T020, T036-T038, T057-T058)
-4. Implementation (T021-T024, T039-T044, T059-T064)
-5. Full test run: `mvn test`
-6. Manual testing via curl/Postman
-7. Update Swagger contract (T024, T044, T064)
+- Tests primero (deben fallar antes de implementar)
+- DTOs/Modelos antes de servicios
+- Servicios antes de controladores
+- Contrato OpenAPI actualizado al cerrar cada historia
 
 ---
 
-## Success Criteria Validation
+## Parallel Execution Examples
 
-| Criterion | Validation Task |
-|-----------|-----------------|
-| **SC-001** (< 500ms p95) | T035, T073 - Performance integration tests |
-| **SC-002** (100% validation) | T014, T018, T020, T046, T052, T057 - Validation tests |
-| **SC-003** (10/page pagination) | T025-T031 - Pagination tests |
-| **SC-004** (100% test pass) | T065 - Full test suite pass |
+### User Story 1
 
----
+- Ejecutar en paralelo T013, T014, T015, T016 (todos sobre tests de create)
+- Ejecutar T017 y T019 en paralelo parcial; T018 depende de T017
 
-## Dependencies & Blocked Tasks
+### User Story 2
 
-**Blocker**: Phase 2 must complete before any Phase 3/4/5 tasks begin
-- T021-T024 (US1) require T005-T012 ✓
-- T039-T044 (US2) require T005-T012 ✓
-- T059-T064 (US3) require T005-T012 ✓
+- Ejecutar en paralelo T021, T022, T023, T024, T025
+- Ejecutar T027 y T030 en paralelo; T028 depende de ambos
 
-**Optional Dependencies** (within phases):
-- T022 can run in parallel with T021 (both US1 create)
-- T041 can run in parallel with T040 (both US2 read)
-- T061 can run in parallel with T060 (both US3 write)
+### User Story 3
+
+- Ejecutar en paralelo T032, T033, T034, T035, T036, T037, T038
+- Ejecutar T039 y T042 en paralelo; T043 depende de T042
+- T044 depende de T043; T041 depende de T039/T040
 
 ---
 
-## Testing Strategy
+## Implementation Strategy
 
-### Contract Tests (Swagger Compliance)
-Verify endpoints match OpenAPI spec in `specs/004-crud-departamentos/contracts/openapi.yaml`
-- Request schemas accepted
-- Response schemas returned
-- HTTP status codes correct
-- Error responses formatted
+### MVP First (User Story 1 Only)
 
-### Integration Tests (Spring Boot Slice)
-Test with real database (H2 in memory) + MockMvc
-- Full request/response cycle
-- Database persistence verified
-- Pagination with real data
-- Authentication security enforced
+1. Completar Phase 1 + Phase 2
+2. Completar US1 (T013-T020)
+3. Validar flujo create y errores de negocio
+4. Publicar incremento MVP
 
-### Unit Tests (Service/Repository)
-Test business logic in isolation
-- Validation logic
-- Duplicate detection
-- Entity mapping to DTOs
-- Repository queries
-- Soft-delete filtering
+### Incremental Delivery
 
----
+1. US1: alta de departamentos
+2. US2: listado y detalle con embebidos limitados
+3. US3: update/delete + validaciones de relación en empleados
+4. Polish final y validación quickstart
 
-## Definition of Done (per Task)
+### Suggested Team Parallelization
 
-A task is COMPLETE when:
-
-1. ✅ Code written per specification and design docs
-2. ✅ Tests written (if task includes tests)
-3. ✅ All tests passing: `mvn test`
-4. ✅ Code follows project conventions (same style as empleados feature)
-5. ✅ No compiler warnings or lint errors
-6. ✅ Logging added for debugging
-7. ✅ File paths match exactly as specified
-8. ✅ Endpoints return spec-compliant responses
-9. ✅ Error handling delegated to GlobalExceptionHandler  
-10. ✅ Database migration included (if data layer task)
-11. ✅ Swagger contract updated (if API endpoint task)
-12. ✅ Committed to feature branch with meaningful message
+1. Equipo completo en Setup/Foundational
+2. Luego dividir por historia:
+   - Dev A: US1
+   - Dev B: US2
+   - Dev C: US3
+3. Integrar con Phase 6 de hardening y validación final
 
 ---
 
-## Feature Ready for Delivery When
+## Validation Checklist
 
-- ✅ Phase 1 (Setup) complete
-- ✅ Phase 2 (Foundation) complete with constitution check PASS
-- ✅ All 3 user stories (Phases 3, 4, 5) complete
-- ✅ All 78 tasks marked `[X]` complete
-- ✅ All tests passing: `mvn test` → 0 failures
-- ✅ Performance validated: p95 < 500ms
-- ✅ Manual testing via API verified
-- ✅ Swagger documentation accessible
-- ✅ PR reviewed and approved
-- ✅ Merged to develop/release/master per git workflow
+- Todas las tareas usan formato `- [X] T### [P] [US#] Descripción con archivo`
+- IDs secuenciales sin huecos (`T001` ... `T053`)
+- Fases separadas: Setup, Foundational, historias por prioridad, Polish
+- Cada historia tiene criterio de prueba independiente
+- Se incluyen oportunidades de paralelización y dependencias

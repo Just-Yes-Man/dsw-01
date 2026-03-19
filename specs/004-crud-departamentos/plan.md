@@ -1,43 +1,35 @@
-# Implementation Plan: CRUD Departamentos
+# Implementation Plan: CRUD Departamentos + Relación 1:N con Empleados
 
-**Branch**: `004-crud-departamentos` | **Date**: 12 de marzo de 2026 | **Spec**: `/specs/004-crud-departamentos/spec.md`
+**Branch**: `004-crud-departamentos` | **Date**: 12 de marzo de 2026 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/004-crud-departamentos/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
 ## Summary
 
-Implementar CRUD completo para la entidad Departamento con persistencia en PostgreSQL, autenticación Basic,
-paginación de 10 registros por página y soft-delete mediante estado ACTIVO/INACTIVO. La solución incluirá
-entidad JPA, repositorio, servicio, DTOs y endpoints REST versionados (`/api/v1/departamentos`) con 
-validación (nombre único, longitud máxima 255 caracteres), verificación referencial (prevenir borrado si hay
-empleados asociados) y contrato OpenAPI.
+Implementar CRUD completo de `departamentos` con soft-delete y validaciones de unicidad/longitud, incorporando explícitamente la relación uno-a-muchos con `empleados`: cada `empleado` debe tener un `departamentoId` válido (ACTIVO), `EmpleadoResponse` debe incluir objeto embebido `departamento`, y `GET /api/v1/departamentos/{id}` debe incluir lista embebida de empleados con límite fijo de 50 elementos.
 
 ## Technical Context
 
 **Language/Version**: Java 17  
-**Primary Dependencies**: Spring Boot 3 (Web, Data JPA, Validation), Spring Security, springdoc-openapi  
-**Storage**: PostgreSQL (runtime), H2 (solo pruebas)  
-**Testing**: JUnit 5, Spring Boot Test, MockMvc, Spring Security Test  
-**Target Platform**: Linux con ejecución local y CI en contenedores Docker  
-**Project Type**: web-service backend monolítico  
-**Performance Goals**: p95 < 500ms para operaciones CRUD (SC-001)  
-**Constraints**: Basic Auth obligatorio, UNIQUE constraint en nombre, validación de longitud máxima 255 chars, soft-delete (marcar como INACTIVO en lugar de borrar), prevenir borrado si hay empleados asociados (HTTP 409), estado ACTIVO/INACTIVO (enum), paginación fija de 10 en consultas de colección, rutas `/api/v1/departamentos`, no retornar departamentos INACTIVO en lista por defecto  
-**Scale/Scope**: Nueva entidad independiente Departamento para organizar estructura empresarial, sin cambios a empleados existentes (relación futura si aplica)
+**Primary Dependencies**: Spring Boot 3.3.x, Spring Security (Basic Auth), Spring Data JPA, Flyway, springdoc-openapi  
+**Storage**: PostgreSQL (runtime) + H2 (tests)  
+**Testing**: JUnit 5, Spring Boot Test, MockMvc, Mockito, Spring Security Test  
+**Target Platform**: Linux containerized backend (Docker/Docker Compose)  
+**Project Type**: Monolithic REST web-service (backend only)  
+**Performance Goals**: p95 < 500ms por operación CRUD y lectura de detalle con embebidos dentro de límites definidos  
+**Constraints**: Basic Auth obligatorio, rutas versionadas `/api/v1/...`, paginación fija de 10 para colecciones, embebido de empleados en detalle de departamento limitado a 50  
+**Schema Governance**: Todo cambio de esquema PostgreSQL debe incluir plan de rollback verificable en el mismo incremento  
+**Scale/Scope**: Feature backend única para `departamentos` y extensión de contrato/respuesta de `empleados`
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Pre-design gate result: PASS.
-Post-design re-check result: **PASS** ✅
-
-- [x] Stack gate: Se mantiene Spring Boot 3 + Java 17 sin excepción.
-- [x] Security gate: Se mantiene Basic Authentication, cualquier usuario autenticado puede acceder (no hay restricción por rol), autenticación heredada de SecurityConfig.
-- [x] API gate: Se planifica actualización OpenAPI para endpoints CRUD en rutas versionadas `/api/v1/departamentos`.
-- [x] Pagination gate: Se implementa paginación fija de 10 registros por página en consulta GET de colección.
-- [x] Data gate: Persistencia en PostgreSQL con migración Flyway V3, ejecución/paridad en Docker Compose.
-- [x] Quality gate: Incluye pruebas contract/integration/unit y validación de inputs.
+- [x] Stack gate: Uses Spring Boot 3 + Java 17, or includes approved RFC exception.
+- [x] Security gate: Defines Basic Authentication scope, HTTPS requirement, and secret handling.
+- [x] API gate: Includes Swagger/OpenAPI update plan for all new/changed endpoints with versioned routes (`/api/v{major}/...`).
+- [x] Pagination gate: Defines collection query pagination with fixed page size of 10 instances per response.
+- [x] Data gate: Uses PostgreSQL and Docker/Docker Compose strategy for local/CI parity.
+- [x] Quality gate: Defines automated tests and structured logging coverage for critical flows.
 
 ## Project Structure
 
@@ -50,6 +42,7 @@ specs/004-crud-departamentos/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
+│   └── openapi.yaml
 └── tasks.md
 ```
 
@@ -58,121 +51,53 @@ specs/004-crud-departamentos/
 ```text
 src/
 ├── main/
-│   ├── java/com/dsw02/departamentos/
-│   │   ├── config/
+│   ├── java/com/dsw02/empleados/
 │   │   ├── controller/
 │   │   ├── dto/
 │   │   ├── entity/
 │   │   ├── repository/
-│   │   └── service/
+│   │   ├── service/
+│   │   ├── config/
+│   │   └── departamentos/
+│   │       ├── controller/
+│   │       ├── dto/
+│   │       ├── entity/
+│   │       ├── exception/
+│   │       ├── repository/
+│   │       └── service/
 │   └── resources/
+│       ├── application.yml
 │       └── db/migration/
 └── test/
-  ├── java/com/dsw02/departamentos/contract/
-  ├── java/com/dsw02/departamentos/integration/
-  ├── java/com/dsw02/departamentos/unit/
-  └── resources/
-
-docker-compose.yml
-pom.xml
+    ├── java/com/dsw02/empleados/
+    │   ├── contract/
+    │   ├── integration/
+    │   └── unit/
+    └── java/com/dsw02/empleados/departamentos/
+        ├── contract/
+        ├── integration/
+        └── unit/
 ```
 
-**Structure Decision**: Se mantiene estructura monolítica existente, creando paquete dedicado `com.dsw02.departamentos` para aislar la nueva entidad y evitar acoplamiento con empleados. Se reutilizan configuraciones de seguridad y persistencia ya establecidas en el proyecto.
+**Structure Decision**: Monolito Spring Boot existente con módulo funcional `departamentos` bajo `com.dsw02.empleados.departamentos`, extendiendo DTOs/servicios de `empleados` para representar y validar la relación 1:N.
+
+## Phase 0 - Research Focus
+
+1. Regla de cardinalidad y validación de asignación (`departamentoId` obligatorio, departamento ACTIVO).
+2. Contrato de representación embebida (`EmpleadoResponse.departamento` y `DepartamentoResponse.empleados[]` limitado a 50).
+3. Estrategia de consultas para evitar payload excesivo y mantener p95 < 500ms.
+4. Reglas de integridad para soft-delete de departamento con empleados asociados (409).
+
+## Phase 1 - Design Focus
+
+1. Actualizar modelo de datos y DTOs para reflejar obligatoriedad de `departamentoId` y embebidos.
+2. Definir contrato OpenAPI de endpoints afectados (`/api/v1/departamentos/*` y respuestas de `empleados`).
+3. Documentar quickstart con pruebas E2E en Docker para CRUD y relación.
+4. Mantener compatibilidad con paginación fija 10 en colecciones; no paginar embebido de detalle (cap fijo 50).
+5. Definir y validar plan de rollback para migraciones de esquema y cobertura de pruebas 401 en endpoints impactados.
 
 ## Complexity Tracking
-
-> **Fill ONLY if Constitution Check has violations that must be justified**
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | Ninguna | N/A | N/A |
-
----
-
-# Execution Phases
-
-## Phase 0: Research & Unknowns Resolution
-
-### Remaining Unknowns to Resolve
-
-**All clarifications completed in `/speckit.clarify` session. No blockers remain.**
-
-✅ Uniqueness: UNIQUE constraint a nivel de DB  
-✅ Authorization: Cualquier usuario autenticado  
-✅ Delete behavior: Soft-delete (marcar INACTIVO); prevenir si hay empleados  
-✅ State lifecycle: ACTIVO/INACTIVO enum (matches empleados pattern)  
-✅ Input validation: Rechazar names > 255 chars con HTTP 400
-
-### Research Output
-
-_Generated by `/speckit.plan` Phase 0 execution._
-
-See: [research.md](research.md)
-
----
-
-## Phase 1: Design & Data Model
-
-### Data Entity: Departamento
-
-_Generated by `/speckit.plan` Phase 1 execution._
-
-**Entity Structure**:
-
-```java
-@Entity
-@Table(name = "departamentos", uniqueConstraints = @UniqueConstraint(columnNames = "nombre"))
-public class Departamento {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Consistent with existing pattern
-    private Long id;
-
-    @Column(nullable = false, length = 255)
-    private String nombre;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private EstadoAcceso estado = EstadoAcceso.ACTIVO;  // Reuse existing enum
-
-    // timestamps (optional, for audit)
-    @CreationTimestamp
-    private LocalDateTime creadoEn;
-
-    @UpdateTimestamp
-    private LocalDateTime actualizadoEn;
-}
-```
-
-**Enum Reuse**: Reutilizar `EstadoAcceso` enum existente de empleados para mantener consistencia.
-
-### API Contracts
-
-_Generated by `/speckit.plan` Phase 1 execution._
-
-**Endpoints**:
-- `POST /api/v1/departamentos` - Create
-- `GET /api/v1/departamentos` - List (paginated, 10 per page)
-- `GET /api/v1/departamentos/{id}` - Read
-- `PATCH /api/v1/departamentos/{id}` - Update
-- `DELETE /api/v1/departamentos/{id}` - Delete (soft-delete)
-
-**Request/Response DTOs**:
-- `DepartamentoCreateRequest`: nombre (String, required, max 255)
-- `DepartamentoUpdateRequest`: nombre (String, required, max 255)
-- `DepartamentoResponse`: id, nombre, estado, creadoEn (LocalDateTime), actualizadoEn (LocalDateTime) *(timestamps required — see data-model.md and openapi.yaml)*
-
-**Error Responses**:
-- 400: VALIDATION_ERROR (empty name, name > 255 chars, null values)
-- 401: UNAUTHORIZED (no Basic Auth)
-- 404: NOT_FOUND (department ID not found or INACTIVO)
-- 409: CONFLICT (duplicate name OR delete with employees)
-
-See: [contracts/openapi.yaml](contracts/openapi.yaml)
-
-### Design Decisions Document
-
-See: [data-model.md](data-model.md)
-
-### Getting Started & Deployment
-
-See: [quickstart.md](quickstart.md)

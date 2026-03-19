@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnauthorized(AuthenticationCredentialsNotFoundException ex) {
         LOGGER.warn("event=auth_unauthorized message=\"{}\"", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponse("UNAUTHORIZED", "Credenciales inválidas o ausentes"));
+                .body(new ErrorResponse("UNAUTHORIZED", "Credenciales inválidas"));
     }
 
     @ExceptionHandler(LockedException.class)

@@ -2,6 +2,7 @@ package com.dsw02.empleados.repository;
 
 import com.dsw02.empleados.entity.Empleado;
 import com.dsw02.empleados.entity.EmpleadoId;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,4 +23,6 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, EmpleadoId> 
     Long findMaxConsecutivo();
 
     boolean existsByDepartamentoId(Long departamentoId);
+
+    List<Empleado> findTop50ByDepartamentoIdOrderByIdConsecutivoAsc(Long departamentoId);
 }

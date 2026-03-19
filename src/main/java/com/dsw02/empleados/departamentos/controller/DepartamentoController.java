@@ -1,6 +1,7 @@
 package com.dsw02.empleados.departamentos.controller;
 
 import com.dsw02.empleados.departamentos.dto.DepartamentoCreateRequest;
+import com.dsw02.empleados.departamentos.dto.DepartamentoDetailResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoPageResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoUpdateRequest;
@@ -52,7 +53,7 @@ public class DepartamentoController {
     }
 
     @GetMapping("/{id}")
-    public DepartamentoResponse findById(@PathVariable Long id) {
+    public DepartamentoDetailResponse findById(@PathVariable Long id) {
         return departamentoService.findById(id);
     }
 

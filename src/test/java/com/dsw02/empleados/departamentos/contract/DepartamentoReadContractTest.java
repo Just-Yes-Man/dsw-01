@@ -6,8 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dsw02.empleados.departamentos.dto.DepartamentoDetailResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoPageResponse;
+import com.dsw02.empleados.departamentos.dto.EmpleadoSummaryResponse;
 import com.dsw02.empleados.departamentos.dto.DepartamentoResponse;
+import java.util.ArrayList;
 import com.dsw02.empleados.departamentos.service.DepartamentoService;
 import com.dsw02.empleados.EmpleadosApplication;
 import com.dsw02.empleados.entity.EstadoAcceso;
@@ -80,10 +83,11 @@ class DepartamentoReadContractTest {
 
     @Test
     void shouldReturnSingleDepartamentoById() throws Exception {
-        DepartamentoResponse item = new DepartamentoResponse();
+        DepartamentoDetailResponse item = new DepartamentoDetailResponse();
         item.setId(5L);
         item.setNombre("Finanzas");
         item.setEstado(EstadoAcceso.ACTIVO);
+        item.setEmpleados(new ArrayList<>());
 
         when(departamentoService.findById(5L)).thenReturn(item);
 
@@ -92,7 +96,35 @@ class DepartamentoReadContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.nombre").value("Finanzas"))
-                .andExpect(jsonPath("$.estado").value("ACTIVO"));
+                .andExpect(jsonPath("$.estado").value("ACTIVO"))
+                .andExpect(jsonPath("$.empleados").isArray());
+    }
+
+    @Test
+    void shouldReturnDepartamentoByIdWithEmbeddedEmpleados() throws Exception {
+        EmpleadoSummaryResponse empleado = new EmpleadoSummaryResponse();
+        empleado.setClave("EMP-1");
+        empleado.setNombre("Ana");
+        empleado.setEmail("ana@example.com");
+        empleado.setEstadoAcceso(EstadoAcceso.ACTIVO);
+
+        DepartamentoDetailResponse item = new DepartamentoDetailResponse();
+        item.setId(10L);
+        item.setNombre("Operaciones");
+        item.setEstado(EstadoAcceso.ACTIVO);
+        item.setEmpleados(List.of(empleado));
+
+        when(departamentoService.findById(10L)).thenReturn(item);
+
+        mockMvc.perform(get("/api/v1/departamentos/10")
+                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.empleados.length()").value(1))
+                .andExpect(jsonPath("$.empleados[0].clave").value("EMP-1"))
+                .andExpect(jsonPath("$.empleados[0].nombre").value("Ana"))
+                .andExpect(jsonPath("$.empleados[0].email").value("ana@example.com"))
+                .andExpect(jsonPath("$.empleados[0].estadoAcceso").value("ACTIVO"));
     }
 
     @Test

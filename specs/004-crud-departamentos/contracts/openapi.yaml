@@ -1,19 +1,13 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Departamentos CRUD API
-  description: Complete CRUD API for managing departments (organizaciones)
-  version: 1.0.0
-  contact:
-    name: DSW02 Team
-    url: https://github.com/Just-Yes-Man/dsw-01
-  license:
-    name: MIT
+  title: Feature 004 - Departamentos & Empleados Relationship API Contract
+  version: 1.1.0
+  description: |
+    Contract for departamentos CRUD and one-to-many relationship behavior with empleados.
+    Includes embedded representations agreed during clarification.
 
 servers:
   - url: http://localhost:8080
-    description: Local development server
-  - url: https://api.example.com
-    description: Production server
 
 security:
   - basicAuth: []
@@ -21,8 +15,8 @@ security:
 paths:
   /api/v1/departamentos:
     post:
-      summary: Create a new department
-      description: Creates a new department with a unique name. Requires Basic Authentication.
+      tags: [Departamentos]
+      summary: Create departamento
       operationId: createDepartamento
       requestBody:
         required: true
@@ -32,105 +26,72 @@ paths:
               $ref: '#/components/schemas/DepartamentoCreateRequest'
       responses:
         '201':
-          description: Department created successfully
+          description: Created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DepartamentoResponse'
         '400':
-          description: Validation error (empty name, name > 255 chars, null values)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                errorCode: VALIDATION_ERROR
-                message: Nombre must be between 1 and 255 characters
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized - missing or invalid Basic Auth credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '409':
-          description: Conflict - department name already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                errorCode: INTEGRITY_CONSTRAINT_VIOLATION
-                message: Department name 'Sales' already exists
+          $ref: '#/components/responses/Conflict'
 
     get:
-      summary: List all active departments
-      description: Returns a paginated list of active departments (10 per page). Requires Basic Authentication.
+      tags: [Departamentos]
+      summary: List active departamentos
       operationId: listDepartamentos
       parameters:
-        - name: page
-          in: query
-          description: Page number (0-indexed)
+        - in: query
+          name: page
           schema:
             type: integer
+            minimum: 0
             default: 0
-        # size is intentionally NOT a client parameter — page size is fixed at 10 per constitution (Principle III).
-        # Do not implement a &size= query parameter in the controller.
+          required: false
       responses:
         '200':
-          description: Successfully retrieved paginated list of departments
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PagedDepartamentoResponse'
+                $ref: '#/components/schemas/DepartamentoPageResponse'
         '401':
-          description: Unauthorized - missing or invalid Basic Auth credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/departamentos/{id}:
     get:
-      summary: Get a specific department
-      description: Returns a single active department by ID. Returns 404 if department not found or is INACTIVO.
-      operationId: getDepartamento
+      tags: [Departamentos]
+      summary: Get active departamento by id (with embedded empleados)
+      operationId: getDepartamentoById
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
-          description: Department ID
           schema:
             type: integer
             format: int64
       responses:
         '200':
-          description: Successfully retrieved department
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DepartamentoResponse'
+                $ref: '#/components/schemas/DepartamentoDetailResponse'
         '401':
-          description: Unauthorized - missing or invalid Basic Auth credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '404':
-          description: Department not found or is inactive (INACTIVO)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/NotFound'
 
     patch:
-      summary: Update a department
-      description: Updates an existing department's name. Requires Basic Authentication.
+      tags: [Departamentos]
+      summary: Update departamento name
       operationId: updateDepartamento
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
-          description: Department ID
           schema:
             type: integer
             format: int64
@@ -142,206 +103,343 @@ paths:
               $ref: '#/components/schemas/DepartamentoUpdateRequest'
       responses:
         '200':
-          description: Department updated successfully
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DepartamentoResponse'
         '400':
-          description: Validation error (empty name, name > 255 chars, null values)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized - missing or invalid Basic Auth credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '404':
-          description: Department not found or is inactive
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: Conflict - new department name already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Conflict'
 
     delete:
-      summary: Delete a department (soft-delete)
-      description: |
-        Soft-deletes a department by marking it as INACTIVO.
-        Returns 409 CONFLICT if the department has associated employees.
-        Requires Basic Authentication.
+      tags: [Departamentos]
+      summary: Soft-delete departamento
       operationId: deleteDepartamento
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
-          description: Department ID
           schema:
             type: integer
             format: int64
       responses:
         '204':
-          description: Department successfully deleted (soft-delete)
+          description: No Content
         '401':
-          description: Unauthorized - missing or invalid Basic Auth credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '404':
-          description: Department not found or is already inactive
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: Conflict - department has associated employees and cannot be deleted
+          description: Departamento has associated empleados
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                errorCode: CONSTRAINT_VIOLATION
-                message: Cannot delete department with associated employees
+
+  /api/v1/empleados:
+    post:
+      tags: [Empleados]
+      summary: Create empleado with required departamentoId
+      operationId: createEmpleado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Referenced departamento not found or inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/empleados/{clave}:
+    get:
+      tags: [Empleados]
+      summary: Get empleado by clave
+      operationId: getEmpleadoByClave
+      parameters:
+        - in: path
+          name: clave
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Empleados]
+      summary: Update empleado with required departamentoId
+      operationId: updateEmpleado
+      parameters:
+        - in: path
+          name: clave
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Empleado or referenced departamento not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
     basicAuth:
       type: http
       scheme: basic
-      description: HTTP Basic Authentication (username:password in Base64)
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
     DepartamentoCreateRequest:
       type: object
-      required:
-        - nombre
+      required: [nombre]
+      additionalProperties: false
       properties:
         nombre:
           type: string
           minLength: 1
           maxLength: 255
-          description: Department name (must be unique, 1-255 characters)
-          example: Sales
-      additionalProperties: false
 
     DepartamentoUpdateRequest:
       type: object
-      required:
-        - nombre
+      required: [nombre]
+      additionalProperties: false
       properties:
         nombre:
           type: string
           minLength: 1
           maxLength: 255
-          description: Department name (must be unique, 1-255 characters)
-          example: Sales & Marketing
-      additionalProperties: false
 
     DepartamentoResponse:
       type: object
+      required: [id, nombre, estado, creadoEn, actualizadoEn]
       properties:
         id:
           type: integer
           format: int64
-          description: Department ID (auto-generated)
-          example: 1
         nombre:
           type: string
-          maxLength: 255
-          description: Department name
-          example: Sales
         estado:
           type: string
-          enum:
-            - ACTIVO
-            - INACTIVO
-          description: Department state (ACTIVO by default)
-          example: ACTIVO
+          enum: [ACTIVO, INACTIVO]
         creadoEn:
           type: string
           format: date-time
-          description: Creation timestamp (ISO 8601)
-          example: 2026-03-12T10:30:00
         actualizadoEn:
           type: string
           format: date-time
-          description: Last update timestamp (ISO 8601)
-          example: 2026-03-12T10:30:00
-      required:
-        - id
-        - nombre
-        - estado
-        - creadoEn
-        - actualizadoEn
 
-    PagedDepartamentoResponse:
+    DepartamentoDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/DepartamentoResponse'
+        - type: object
+          properties:
+            empleados:
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/EmpleadoSummary'
+
+    DepartamentoPageResponse:
       type: object
+      required: [page, size, totalElements, items]
       properties:
-        content:
+        page:
+          type: integer
+        size:
+          type: integer
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+        items:
           type: array
           items:
             $ref: '#/components/schemas/DepartamentoResponse'
-          description: Array of departments in this page
-        totalElements:
+
+    EmpleadoCreateRequest:
+      type: object
+      required: [nombre, direccion, telefono, email, password, estadoAcceso, departamentoId]
+      additionalProperties: false
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          maxLength: 255
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        departamentoId:
           type: integer
-          description: Total number of departments across all pages
-          example: 42
-        totalPages:
+          format: int64
+          minimum: 1
+
+    EmpleadoUpdateRequest:
+      type: object
+      required: [nombre, direccion, telefono, email, password, estadoAcceso, departamentoId]
+      additionalProperties: false
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          maxLength: 255
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        departamentoId:
           type: integer
-          description: Total number of pages
-          example: 5
-        currentPage:
+          format: int64
+          minimum: 1
+
+    DepartamentoEmbedded:
+      type: object
+      required: [id, nombre, estado]
+      properties:
+        id:
           type: integer
-          description: Current page number (0-indexed)
-          example: 0
-        pageSize:
-          type: integer
-          description: Number of items per page (fixed at 10)
-          example: 10
-        hasNext:
-          type: boolean
-          description: Whether there is a next page
-          example: true
-        hasPrevious:
-          type: boolean
-          description: Whether there is a previous page
-          example: false
+          format: int64
+        nombre:
+          type: string
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    EmpleadoSummary:
+      type: object
+      required: [clave, nombre, email, estadoAcceso]
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        email:
+          type: string
+          format: email
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    EmpleadoResponse:
+      type: object
+      required: [clave, nombre, direccion, telefono, email, estadoAcceso, departamento]
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        direccion:
+          type: string
+        telefono:
+          type: string
+        email:
+          type: string
+          format: email
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        departamento:
+          $ref: '#/components/schemas/DepartamentoEmbedded'
 
     ErrorResponse:
       type: object
+      required: [code, message]
       properties:
-        errorCode:
+        code:
           type: string
-          description: Machine-readable error code
-          enum:
-            - VALIDATION_ERROR
-            - UNAUTHORIZED
-            - NOT_FOUND
-            - INTEGRITY_CONSTRAINT_VIOLATION
-            - CONSTRAINT_VIOLATION
-            - INTERNAL_SERVER_ERROR
-          example: VALIDATION_ERROR
         message:
           type: string
-          description: Human-readable error message
-          example: Nombre must be between 1 and 255 characters
-        details:
-          type: object
-          description: Additional error details (optional)
-          nullable: true
-      required:
-        - errorCode
-        - message
-
-tags:
-  - name: Departamentos
-    description: Department management endpoints

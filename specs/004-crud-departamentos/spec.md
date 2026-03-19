@@ -3,7 +3,7 @@
 **Feature Branch**: `004-crud-departamentos`  
 **Created**: 12 de marzo de 2026  
 **Status**: Draft  
-**Input**: User description: "Se creará una nueva tabla departamentos con los atributos: id y nombre. Igualmente debe tener un CRUD completo."
+**Input**: User description: "Se creará una nueva tabla departamentos con los atributos: id y nombre. Igualmente debe tener un CRUD completo." + "La relación entre Departamentos y Empleados debe ser uno-a-muchos (un departamento puede tener varios empleados)."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -36,6 +36,7 @@ Un usuario autenticado necesita ver la lista de todos los departamentos existent
 1. **Given** departments exist in the system, **When** an authenticated user sends a GET request to list departments, **Then** the system returns HTTP 200 with a paginated list of departments (10 per page)
 2. **Given** no departments exist, **When** an authenticated user sends a GET request, **Then** the system returns HTTP 200 with an empty paginated response
 3. **Given** more than 10 departments exist, **When** an authenticated user requests page 2, **Then** the system returns the next 10 departments
+4. **Given** a department exists with associated employees, **When** an authenticated user requests `GET /api/v1/departamentos/{id}`, **Then** the response includes the department data and an embedded employees list for that department (maximum 50 employees)
 
 ---
 
@@ -53,6 +54,7 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 2. **Given** a department exists with no associated employees, **When** an authenticated user sends a DELETE request, **Then** the system deletes the department and returns HTTP 204
 3. **Given** a department exists with one or more associated employees, **When** an authenticated user sends a DELETE request, **Then** the system returns HTTP 409 (Conflict) with error message indicating employees are assigned to this department
 4. **Given** a department ID does not exist, **When** an authenticated user tries to update or delete it, **Then** the system returns HTTP 404
+5. **Given** an employee is created or updated with a valid departamentoId, **When** the operation is processed, **Then** the employee is associated with that department while preserving a one-department-per-employee rule
 
 ---
 
@@ -63,6 +65,8 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 - What happens when the system receives a department name longer than 255 characters? (Reject with HTTP 400 validation error)
 - What is the error message format when attempting to delete a department with employees?
 - How does the system handle pagination for departments marked as INACTIVE? (Not returned in default list)
+- What happens when an employee is created/updated with a departamentoId that does not exist or is INACTIVE? (Must return HTTP 404 and reject assignment)
+- What happens when many employees are assigned to the same department? (Must be supported as valid one-to-many cardinality)
 
 ## Requirements *(mandatory)*
 
@@ -76,11 +80,18 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 - **FR-006**: System MUST return HTTP 404 when attempting to access a non-existent or INACTIVE department
 - **FR-007**: System MUST persist all department data in PostgreSQL and handle migrations automatically via Flyway
 - **FR-008**: System MUST provide Swagger/OpenAPI documentation for all department endpoints
-- **FR-009**: System MUST return HTTP 409 (Conflict) when attempting to create or update a department with a name that already exists
+- **FR-009**: System MUST return HTTP 409 (Conflict) with standardized error payload (`code`, `message`) when attempting to create or update a department with a name that already exists
 - **FR-010**: System MUST return HTTP 401 (Unauthorized) for all endpoints when user is not authenticated via Basic Auth
 - **FR-012**: System MUST set department estado to ACTIVO by default when creating a new department
 - **FR-013**: System MUST include estado field in all department API responses (read, list, create, update)
-- **FR-014**: System MUST return HTTP 400 with specific validation error message if department name exceeds 255 characters
+- **FR-014**: System MUST return HTTP 400 with field-level validation detail (`code=VALIDATION_ERROR`, field=`nombre`) when department name exceeds 255 characters
+- **FR-015**: System MUST enforce a one-to-many relationship between Departamento and Empleado: one Departamento can be associated with multiple Empleados, and each Empleado can reference at most one Departamento at a time
+- **FR-016**: System MUST require Empleado create/update operations to include `departamentoId` and persist the association when the referenced department exists and is ACTIVO
+- **FR-017**: System MUST reject Empleado create/update with `departamentoId` when the referenced department does not exist or is INACTIVO, returning HTTP 404
+- **FR-018**: System MUST include an embedded `departamento` object (`id`, `nombre`, `estado`) in Empleado API responses (create, read by clave, list, update) when an Empleado has an assigned department
+- **FR-019**: System MUST reject Empleado create/update when `departamentoId` is null, returning HTTP 400 with validation error
+- **FR-020**: System MUST include an embedded `empleados` list in `GET /api/v1/departamentos/{id}` responses when employees are associated to that department
+- **FR-021**: System MUST limit embedded `empleados` in `GET /api/v1/departamentos/{id}` to a fixed maximum of 50 records
 
 ### Constitution Alignment *(mandatory)*
 
@@ -93,7 +104,9 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 
 ### Key Entities *(include if feature involves data)*
 
-- **Departamento**: Represents an organizational department with a unique identifier, display name, and lifecycle state. Attributes: `id` (generated UUID or auto-increment as per existing pattern), `nombre` (string, required, max 255 characters, unique), `estado` (enum: ACTIVO/INACTIVO, default ACTIVO - soft-delete by marking as INACTIVE instead of hard-delete)
+- **Departamento**: Represents an organizational department with a unique identifier, display name, and lifecycle state. Attributes: `id` (generated UUID or auto-increment as per existing pattern), `nombre` (string, required, max 255 characters, unique), `estado` (enum: ACTIVO/INACTIVO, default ACTIVO - soft-delete by marking as INACTIVE instead of hard-delete).
+- **Empleado**: Represents an employee that belongs to a single active department. Attributes relevant to this feature: `clave`, `email`, `estadoAcceso`, `departamentoId` (required logical FK to Departamento ACTIVO).
+- **Relationship Rule**: `Departamento (1) -> (N) Empleado`; each Empleado belongs to exactly 1 Departamento, each Departamento can group 0..N Empleados.
 
 ## Success Criteria *(mandatory)*
 
@@ -113,6 +126,12 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 - Q: What happens when deleting a department with associated employees? → A: Prevent deletion; return HTTP 409 (Conflict); employees must be reassigned/deleted first
 - Q: Should departments support ACTIVE/INACTIVE states? → A: Yes, add estado (ACTIVO/INACTIVO enum); soft-delete by marking as INACTIVE; matches empleados pattern
 - Q: How should the system handle department names > 255 characters? → A: Reject with HTTP 400 validation error; prevent silent truncation
+- Q: How should the relation between departamentos and empleados be modeled? → A: One-to-many, where one departamento can have many empleados and each empleado can belong to only one departamento at a time
+- Q: How should departamento be represented in EmpleadoResponse? → A: Include an embedded `departamento` object with `id`, `nombre`, and `estado`
+- Q: Should Empleado always require a department assignment? → A: Yes, `departamentoId` is mandatory in create/update and cannot be null
+- Q: Should department read response expose related employees? → A: Yes, `GET /api/v1/departamentos/{id}` must embed the associated employees list
+- Q: How many embedded employees should `GET /api/v1/departamentos/{id}` return? → A: Maximum 50 employees (fixed cap, no pagination in embedded list)
+- Q: What is the error payload format for delete conflict when a department has employees? → A: Return HTTP 409 with `{ "code": "CONFLICT", "message": "Departamento has associated empleados" }`
 
 ## Assumptions
 
@@ -120,3 +139,4 @@ Un usuario autenticado necesita actualizar o eliminar departamentos cuando cambi
 - API versioning follows the established pattern (`/api/v1/...`)
 - Department names may contain special characters but are validated for length (≤ 255 chars)
 - INACTIVE departments are not returned by default in list/read operations (soft-delete semantics)
+- Every Empleado must have a valid `departamentoId` referencing an ACTIVO department

@@ -33,8 +33,8 @@
 
 **All items PASSED ✓**
 
-The specification is clear, complete, and ready for the design planning phase. No ambiguities remain and all sections are filled with concrete, measurable criteria.
+The specification is clear, complete, and ready for the design planning phase. No ambiguities remain and all sections are filled with concrete, measurable criteria, including the one-to-many cardinality rules between departamentos and empleados.
 
 ## Notes
 
-Feature 004 specifies a straightforward CRUD for a new Departamentos entity. The specification follows the established patterns from previous features (empleados, paginación) and maintains architectural consistency with the project constitution.
+Feature 004 specifies CRUD for Departamentos plus explicit one-to-many relation behavior with Empleados (Departamento 1 -> N Empleados), including assignment validation and delete conflict rules when employees are associated.
