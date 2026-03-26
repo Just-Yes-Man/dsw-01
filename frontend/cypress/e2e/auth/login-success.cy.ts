@@ -1,5 +1,5 @@
 describe('Auth login success', () => {
-  it('logs in and redirects to /empleados', () => {
+  it('logs in and redirects to /index', () => {
     cy.intercept('POST', '**/api/v1/auth/login', {
       statusCode: 200,
       body: {
@@ -10,23 +10,15 @@ describe('Auth login success', () => {
       }
     }).as('login');
 
-    cy.intercept('GET', '**/api/v1/empleados*', {
-      statusCode: 200,
-      body: {
-        items: [],
-        page: 0,
-        size: 10,
-        totalElements: 0
-      }
-    }).as('empleados');
-
     cy.visit('/login');
     cy.get('#email').type('ana@example.com');
     cy.get('#password').type('ana123');
     cy.contains('button', 'Entrar').click();
 
     cy.wait('@login');
-    cy.wait('@empleados');
-    cy.url().should('include', '/empleados');
+    cy.url().should('include', '/index');
+    cy.contains('h1', 'Panel principal').should('exist');
+    cy.contains('a', 'Ir a empleados').should('exist');
+    cy.contains('a', 'Ir a departamentos').should('exist');
   });
 });

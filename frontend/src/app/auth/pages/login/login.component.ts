@@ -33,12 +33,12 @@ export class LoginComponent {
       return;
     }
 
-    this.errorMessage = 'Credenciales inválidas';
+    this.errorMessage = '';
     const credentials = this.form.getRawValue() as { email: string; password: string };
     this.authService.login(credentials).subscribe({
       next: () => {
         this.errorMessage = '';
-        this.router.navigateByUrl('/empleados');
+        this.router.navigateByUrl('/index');
       },
       error: (error: HttpErrorResponse) => {
         this.errorMessage = error.status === 401

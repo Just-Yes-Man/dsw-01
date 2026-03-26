@@ -54,7 +54,7 @@ describe('LoginComponent', () => {
     expect(component.errorMessage).toBe('No fue posible iniciar sesión. Intenta nuevamente.');
   });
 
-  it('redirects to /empleados on successful login', () => {
+  it('redirects to /index on successful login', () => {
     component.form.setValue({ email: 'ana@example.com', password: 'ana123' });
     authServiceSpy.login.and.returnValue(
       of({
@@ -67,6 +67,6 @@ describe('LoginComponent', () => {
 
     component.submit();
 
-    expect(routerSpy.navigateByUrl).toHaveBeenCalledWith('/empleados');
+    expect(routerSpy.navigateByUrl).toHaveBeenCalledWith('/index');
   });
 });

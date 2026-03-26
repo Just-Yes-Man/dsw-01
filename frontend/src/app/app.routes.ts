@@ -7,9 +7,11 @@ import { DepartamentosListPageComponent } from './departamentos/pages/departamen
 import { EmpleadoCreatePageComponent } from './empleados/pages/empleado-create-page.component';
 import { EmpleadoEditPageComponent } from './empleados/pages/empleado-edit-page.component';
 import { EmpleadosListPageComponent } from './empleados/pages/empleados-list-page.component';
+import { IndexPageComponent } from './home/pages/index-page.component';
 
 export const appRoutes: Routes = [
 	{ path: 'login', component: LoginComponent },
+	{ path: 'index', component: IndexPageComponent, canActivate: [authGuard] },
 	{ path: 'empleados', component: EmpleadosListPageComponent, canActivate: [authGuard] },
 	{ path: 'empleados/nuevo', component: EmpleadoCreatePageComponent, canActivate: [authGuard] },
 	{ path: 'empleados/:clave/editar', component: EmpleadoEditPageComponent, canActivate: [authGuard] },
