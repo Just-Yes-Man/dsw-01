@@ -16,11 +16,11 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: empleados-app
+    container_name: empleados-backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -30,25 +30,27 @@ services:
       DB_NAME: empleadosdb
       DB_USER: empleados
       DB_PASSWORD: empleados123
-      BASIC_AUTH_USER: admin
-      BASIC_AUTH_PASSWORD: admin123
+      BOOTSTRAP_AUTH_USER: bootstrap_admin
+      BOOTSTRAP_AUTH_PASSWORD: bootstrap123
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:4200
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   frontend:
-    image: node:22-alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: empleados-frontend
-    working_dir: /workspace/frontend
-    command: sh -c "npm install && npm run start -- --host 0.0.0.0 --port 4200"
-    volumes:
-      - ./:/workspace
     depends_on:
-      app:
-        condition: service_started
+      backend:
+        condition: service_healthy
     ports:
-      - "4200:4200"
-    profiles:
-      - frontend
+      - "4200:80"
 
 volumes:
   pgdata:
