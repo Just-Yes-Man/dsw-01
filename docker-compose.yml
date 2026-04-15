@@ -6,8 +6,8 @@ services:
       POSTGRES_DB: empleadosdb
       POSTGRES_USER: empleados
       POSTGRES_PASSWORD: empleados123
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -32,9 +32,9 @@ services:
       DB_PASSWORD: empleados123
       BOOTSTRAP_AUTH_USER: bootstrap_admin
       BOOTSTRAP_AUTH_PASSWORD: bootstrap123
-      APP_CORS_ALLOWED_ORIGINS: http://localhost:4200
-    ports:
-      - "8080:8080"
+      APP_CORS_ALLOWED_ORIGINS: http://localhost
+    expose:
+      - "8080"
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
@@ -49,8 +49,21 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    expose:
+      - "80"
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: empleados-proxy
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     ports:
-      - "4200:80"
+      - "80:80"
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
   pgdata:
