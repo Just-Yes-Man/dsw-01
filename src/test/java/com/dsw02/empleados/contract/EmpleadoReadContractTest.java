@@ -10,6 +10,7 @@ import com.dsw02.empleados.config.GlobalExceptionHandler;
 import com.dsw02.empleados.config.SecurityConfig;
 import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.EmpleadoController;
+import com.dsw02.empleados.dto.DepartamentoEmbeddedResponse;
 import com.dsw02.empleados.dto.EmpleadoPageResponse;
 import com.dsw02.empleados.dto.EmpleadoResponse;
 import com.dsw02.empleados.service.AuthLockoutService;
@@ -52,6 +53,11 @@ class EmpleadoReadContractTest {
         response.setNombre("Ana");
         response.setDireccion("Calle 1");
         response.setTelefono("555-1234");
+        DepartamentoEmbeddedResponse departamento = new DepartamentoEmbeddedResponse();
+        departamento.setId(7L);
+        departamento.setNombre("Ventas");
+        departamento.setEstado(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
+        response.setDepartamento(departamento);
 
         EmpleadoPageResponse pageResponse = new EmpleadoPageResponse();
         pageResponse.setPage(0);
@@ -67,11 +73,13 @@ class EmpleadoReadContractTest {
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(10))
                 .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.items[0].clave").value("EMP-1"));
+                .andExpect(jsonPath("$.items[0].clave").value("EMP-1"))
+                .andExpect(jsonPath("$.items[0].departamento.id").value(7));
 
         mockMvc.perform(get("/api/v1/empleados/EMP-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clave").value("EMP-1"));
+                .andExpect(jsonPath("$.clave").value("EMP-1"))
+                .andExpect(jsonPath("$.departamento.id").value(7));
     }
 
     @Test

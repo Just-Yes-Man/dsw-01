@@ -1,0 +1,72 @@
+<header class="toolbar panel">
+  <h1>Empleados</h1>
+  <div class="toolbar-actions">
+    <button type="button" class="secondary" (click)="logout()">Cerrar sesión</button>
+  </div>
+</header>
+
+<section class="filters panel">
+  <label class="checkbox-label">
+    <input type="checkbox" (change)="toggleInactive($event)" />
+    Mostrar inactivos
+  </label>
+</section>
+
+<p *ngIf="store.listState().loading">Cargando...</p>
+<p *ngIf="store.listState().error" class="error">{{ store.listState().error }}</p>
+
+<table *ngIf="!store.listState().loading && store.items().length > 0" class="list-table">
+  <thead>
+    <tr>
+      <th>Clave</th>
+      <th>Nombre</th>
+      <th>Correo</th>
+      <th>Estado</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let empleado of store.items()">
+      <td>{{ empleado.clave }}</td>
+      <td>{{ empleado.nombre }}</td>
+      <td>{{ empleado.email }}</td>
+      <td>
+        <span class="status" [class.status-inactive]="empleado.estadoAcceso === 'INACTIVO'">
+          {{ empleado.estadoAcceso }}
+        </span>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button type="button" class="secondary" (click)="goToEdit(empleado.clave)">Editar</button>
+          <button
+            type="button"
+            class="danger"
+            (click)="openDeactivate(empleado.clave)"
+            [disabled]="empleado.estadoAcceso === 'INACTIVO'"
+          >
+          Desactivar
+          </button>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="!store.listState().loading && store.items().length === 0" class="empty-state">No hay empleados para mostrar.</p>
+
+<footer class="pagination panel">
+  <button type="button" (click)="goToCreate()">Nuevo empleado</button>
+  <div class="pagination-controls">
+    <button type="button" class="secondary" (click)="load(store.listState().page - 1)" [disabled]="store.listState().page <= 0">Anterior</button>
+    <span>Página {{ store.listState().page + 1 }}</span>
+    <button type="button" class="secondary" (click)="load(store.listState().page + 1)">Siguiente</button>
+  </div>
+</footer>
+
+<app-empleado-disable-confirm-dialog
+  [open]="!!confirmClave"
+  [processing]="confirmProcessing"
+  [empleadoClave]="confirmClave"
+  (cancel)="closeDeactivate()"
+  (confirm)="confirmDeactivate()"
+/>

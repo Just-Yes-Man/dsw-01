@@ -1,0 +1,445 @@
+openapi: 3.0.3
+info:
+  title: Feature 004 - Departamentos & Empleados Relationship API Contract
+  version: 1.1.0
+  description: |
+    Contract for departamentos CRUD and one-to-many relationship behavior with empleados.
+    Includes embedded representations agreed during clarification.
+
+servers:
+  - url: http://localhost:8080
+
+security:
+  - basicAuth: []
+
+paths:
+  /api/v1/departamentos:
+    post:
+      tags: [Departamentos]
+      summary: Create departamento
+      operationId: createDepartamento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartamentoCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    get:
+      tags: [Departamentos]
+      summary: List active departamentos
+      operationId: listDepartamentos
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoPageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/departamentos/{id}:
+    get:
+      tags: [Departamentos]
+      summary: Get active departamento by id (with embedded empleados)
+      operationId: getDepartamentoById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Departamentos]
+      summary: Update departamento name
+      operationId: updateDepartamento
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartamentoUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartamentoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Departamentos]
+      summary: Soft-delete departamento
+      operationId: deleteDepartamento
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Departamento has associated empleados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/empleados:
+    post:
+      tags: [Empleados]
+      summary: Create empleado with required departamentoId
+      operationId: createEmpleado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Referenced departamento not found or inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/empleados/{clave}:
+    get:
+      tags: [Empleados]
+      summary: Get empleado by clave
+      operationId: getEmpleadoByClave
+      parameters:
+        - in: path
+          name: clave
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Empleados]
+      summary: Update empleado with required departamentoId
+      operationId: updateEmpleado
+      parameters:
+        - in: path
+          name: clave
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpleadoUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmpleadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Empleado or referenced departamento not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    DepartamentoCreateRequest:
+      type: object
+      required: [nombre]
+      additionalProperties: false
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 255
+
+    DepartamentoUpdateRequest:
+      type: object
+      required: [nombre]
+      additionalProperties: false
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 255
+
+    DepartamentoResponse:
+      type: object
+      required: [id, nombre, estado, creadoEn, actualizadoEn]
+      properties:
+        id:
+          type: integer
+          format: int64
+        nombre:
+          type: string
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
+
+    DepartamentoDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/DepartamentoResponse'
+        - type: object
+          properties:
+            empleados:
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/EmpleadoSummary'
+
+    DepartamentoPageResponse:
+      type: object
+      required: [page, size, totalElements, items]
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartamentoResponse'
+
+    EmpleadoCreateRequest:
+      type: object
+      required: [nombre, direccion, telefono, email, password, estadoAcceso, departamentoId]
+      additionalProperties: false
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          maxLength: 255
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        departamentoId:
+          type: integer
+          format: int64
+          minimum: 1
+
+    EmpleadoUpdateRequest:
+      type: object
+      required: [nombre, direccion, telefono, email, password, estadoAcceso, departamentoId]
+      additionalProperties: false
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+        direccion:
+          type: string
+          maxLength: 100
+        telefono:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          maxLength: 255
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        departamentoId:
+          type: integer
+          format: int64
+          minimum: 1
+
+    DepartamentoEmbedded:
+      type: object
+      required: [id, nombre, estado]
+      properties:
+        id:
+          type: integer
+          format: int64
+        nombre:
+          type: string
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    EmpleadoSummary:
+      type: object
+      required: [clave, nombre, email, estadoAcceso]
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        email:
+          type: string
+          format: email
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    EmpleadoResponse:
+      type: object
+      required: [clave, nombre, direccion, telefono, email, estadoAcceso, departamento]
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        direccion:
+          type: string
+        telefono:
+          type: string
+        email:
+          type: string
+          format: email
+        estadoAcceso:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        departamento:
+          $ref: '#/components/schemas/DepartamentoEmbedded'
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

@@ -36,6 +36,9 @@ public class Empleado {
     @Column(name = "estado_acceso", nullable = false, length = 20)
     private EstadoAcceso estadoAcceso;
 
+    @Column(name = "departamento_id")
+    private Long departamentoId;
+
     public EmpleadoId getId() {
         return id;
     }
@@ -98,5 +101,13 @@ public class Empleado {
 
     public void setEstadoAcceso(EstadoAcceso estadoAcceso) {
         this.estadoAcceso = estadoAcceso;
+    }
+
+    public Long getDepartamentoId() {
+        return departamentoId;
+    }
+
+    public void setDepartamentoId(Long departamentoId) {
+        this.departamentoId = departamentoId;
     }
 }

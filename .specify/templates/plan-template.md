@@ -18,9 +18,9 @@
 -->
 
 **Language/Version**: [e.g., Java 17 (required by constitution) or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., Spring Boot 3, Spring Security, springdoc-openapi or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., Spring Boot 3, Spring Security, springdoc-openapi, Angular 22 LTS (if frontend) or NEEDS CLARIFICATION]  
 **Storage**: [e.g., PostgreSQL (required), N/A if no persistence]  
-**Testing**: [e.g., JUnit 5, Spring Boot Test, Testcontainers or NEEDS CLARIFICATION]  
+**Testing**: [e.g., JUnit 5, Spring Boot Test, Testcontainers, Cypress (if frontend) or NEEDS CLARIFICATION]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
@@ -37,6 +37,8 @@
 - [ ] Pagination gate: Defines collection query pagination with fixed page size of 10 instances per response.
 - [ ] Data gate: Uses PostgreSQL and Docker/Docker Compose strategy for local/CI parity.
 - [ ] Quality gate: Defines automated tests and structured logging coverage for critical flows.
+- [ ] Frontend gate (conditional): If scope includes web UI, uses Angular 22 LTS or includes approved RFC exception.
+- [ ] E2E gate (conditional): If scope includes web UI changes, defines Cypress coverage for critical user journeys.
 
 ## Project Structure
 

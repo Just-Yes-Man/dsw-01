@@ -1,0 +1,48 @@
+.index-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.index-header {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.index-header p {
+  color: var(--ow-muted);
+}
+
+.index-header button {
+  justify-self: start;
+}
+
+.index-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.index-card {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.index-card p {
+  color: var(--ow-muted);
+  line-height: 1.4;
+}
+
+.index-link {
+  justify-self: start;
+  text-decoration: none;
+  color: #fff;
+  background: var(--ow-blue-500);
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.index-link:hover {
+  background: var(--ow-blue-600);
+}

@@ -6,7 +6,9 @@ import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.Customizer;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -25,8 +28,12 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
@@ -35,6 +42,7 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final EmpleadoUserDetailsService empleadoUserDetailsService;
     private final AuthLockoutService authLockoutService;
+    private final SessionAuthenticationFilter sessionAuthenticationFilter;
 
     @Value("${security.bootstrap.user:bootstrap_admin}")
     private String bootstrapUser;
@@ -42,10 +50,15 @@ public class SecurityConfig {
     @Value("${security.bootstrap.password:bootstrap123}")
     private String bootstrapPassword;
 
+    @Value("${app.cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins;
+
     public SecurityConfig(EmpleadoUserDetailsService empleadoUserDetailsService,
-                          AuthLockoutService authLockoutService) {
+                          AuthLockoutService authLockoutService,
+                          SessionAuthenticationFilter sessionAuthenticationFilter) {
         this.empleadoUserDetailsService = empleadoUserDetailsService;
         this.authLockoutService = authLockoutService;
+        this.sessionAuthenticationFilter = sessionAuthenticationFilter;
     }
 
     @Bean
@@ -117,7 +130,7 @@ public class SecurityConfig {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             objectMapper.writeValue(response.getWriter(), locked
                     ? new ErrorResponse("LOCKED", "Cuenta bloqueada temporalmente")
-                    : new ErrorResponse("UNAUTHORIZED", "Credenciales inválidas o ausentes"));
+                    : new ErrorResponse("UNAUTHORIZED", "Credenciales inválidas"));
         };
     }
 
@@ -136,11 +149,36 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health").permitAll()
+                    .requestMatchers(
+                            "/swagger-ui.html",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/actuator/health",
+                            "/api/v1/auth/login",
+                            "/api/v1/auth/session",
+                            "/api/v1/auth/logout"
+                    ).permitAll()
                         .anyRequest().authenticated())
+                        .addFilterBefore(sessionAuthenticationFilter, BasicAuthenticationFilter.class)
                 .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(authenticationEntryPoint()));
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .toList());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

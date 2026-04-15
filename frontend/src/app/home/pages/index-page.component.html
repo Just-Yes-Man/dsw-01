@@ -1,0 +1,21 @@
+<section class="index-shell">
+  <header class="panel index-header">
+    <h1>Panel principal</h1>
+    <p>Selecciona el módulo que deseas administrar.</p>
+    <button type="button" class="secondary" (click)="logout()">Cerrar sesión</button>
+  </header>
+
+  <section class="index-grid">
+    <article class="panel index-card">
+      <h2>CRUD Empleados</h2>
+      <p>Gestiona altas, edición y estado de acceso de empleados.</p>
+      <a routerLink="/empleados" class="index-link">Ir a empleados</a>
+    </article>
+
+    <article class="panel index-card">
+      <h2>CRUD Departamentos</h2>
+      <p>Administra catálogo, edición y eliminación de departamentos.</p>
+      <a routerLink="/departamentos" class="index-link">Ir a departamentos</a>
+    </article>
+  </section>
+</section>

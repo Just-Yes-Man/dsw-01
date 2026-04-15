@@ -34,6 +34,7 @@ class EmpleadoValidationTest {
         request.setEmail("ana@example.com");
         request.setPassword("ana123");
         request.setEstadoAcceso(EstadoAcceso.ACTIVO);
+        request.setDepartamentoId(1L);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("máximo 100")));
@@ -49,6 +50,7 @@ class EmpleadoValidationTest {
         request.setEmail("ana@example.com");
         request.setPassword("ana123");
         request.setEstadoAcceso(EstadoAcceso.ACTIVO);
+        request.setDepartamentoId(1L);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("clave")));
@@ -63,6 +65,7 @@ class EmpleadoValidationTest {
         request.setEmail("ana@example.com");
         request.setPassword("ana123");
         request.setEstadoAcceso(EstadoAcceso.ACTIVO);
+        request.setDepartamentoId(1L);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertFalse(violations.iterator().hasNext());
@@ -77,6 +80,7 @@ class EmpleadoValidationTest {
         request.setEmail("not-an-email");
         request.setPassword("ana123");
         request.setEstadoAcceso(EstadoAcceso.ACTIVO);
+        request.setDepartamentoId(1L);
 
         Set<ConstraintViolation<EmpleadoCreateRequest>> violations = validator.validate(request);
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("email")));
