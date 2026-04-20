@@ -2,12 +2,18 @@ name: 01 CI Tests
 
 on:
   push:
+    branches:
+      - 'master'
+      - 'release'
     paths:
       - 'frontend/**'
       - 'src/**'
       - 'pom.xml'
       - '.github/workflows/01-ci-tests.yml'
   pull_request:
+    branches:
+      - 'master'
+      - 'release'
     paths:
       - 'frontend/**'
       - 'src/**'
