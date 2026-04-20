@@ -41,6 +41,17 @@ public class AuthController {
         try {
             HttpSession session = httpServletRequest.getSession(true);
             SessionResponse sessionResponse = authSessionService.login(request, session);
+
+            ResponseCookie.ResponseCookieBuilder sessionCookie = ResponseCookie.from("JSESSIONID", session.getId())
+                    .path("/")
+                    .httpOnly(true)
+                    .sameSite("Lax");
+
+            if (httpServletRequest.isSecure() || "https".equalsIgnoreCase(httpServletRequest.getHeader("X-Forwarded-Proto"))) {
+                sessionCookie.secure(true);
+            }
+
+            httpServletResponse.addHeader("Set-Cookie", sessionCookie.build().toString());
             LOGGER.info("event=login_success principal={} authType=session-cookie", request.getEmail());
             return ResponseEntity.ok(sessionResponse);
         } catch (AccountTemporarilyLockedException ex) {
