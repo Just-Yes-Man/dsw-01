@@ -103,6 +103,8 @@
 - **CA-004**: The feature MUST define Swagger/OpenAPI contract updates for every endpoint change with routes versioned as `/api/v{major}/...`.
 - **CA-005**: The feature MUST define pagination for collection queries with 10 instances per response.
 - **CA-006**: The feature MUST define required automated tests and logging/security evidence.
+- **CA-007**: If the feature includes web frontend scope, it MUST use Angular 22 LTS (or document approved exception).
+- **CA-008**: If the feature includes web frontend scope, it MUST define Cypress E2E coverage for critical flows.
 
 ### Key Entities *(include if feature involves data)*
 

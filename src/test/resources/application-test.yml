@@ -14,3 +14,11 @@ security:
   bootstrap:
     user: bootstrap_admin
     password: bootstrap123
+
+auth:
+  session:
+    idle-timeout-minutes: 480
+
+app:
+  cors:
+    allowed-origins: http://localhost:4200

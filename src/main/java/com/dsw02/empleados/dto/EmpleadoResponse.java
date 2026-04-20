@@ -9,6 +9,7 @@ public class EmpleadoResponse {
     private String direccion;
     private String telefono;
     private String email;
+    private DepartamentoEmbeddedResponse departamento;
     private EstadoAcceso estadoAcceso;
 
     public String getClave() {
@@ -49,6 +50,14 @@ public class EmpleadoResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public DepartamentoEmbeddedResponse getDepartamento() {
+        return departamento;
+    }
+
+    public void setDepartamento(DepartamentoEmbeddedResponse departamento) {
+        this.departamento = departamento;
     }
 
     public EstadoAcceso getEstadoAcceso() {
