@@ -69,3 +69,32 @@ jobs:
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: npm test -- --watch=false --browsers=ChromeHeadlessNoSandbox --no-progress
+
+  cypress-smoke:
+    name: Cypress Smoke Test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run Cypress smoke test
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          install-command: npm ci
+          start: npm run start -- --host 0.0.0.0 --port 4200
+          wait-on: 'http://localhost:4200'
+          wait-on-timeout: 120
+          browser: chrome
+          spec: cypress/e2e/auth/login-success.cy.ts
+        env:
+          CYPRESS_BASE_URL: http://localhost:4200
