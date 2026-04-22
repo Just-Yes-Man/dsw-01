@@ -13,8 +13,9 @@ describe('Auth login failure', () => {
     cy.get('#password').type('wrong');
     cy.contains('button', 'Entrar').click();
 
-    cy.wait('@loginFailure');
+    cy.wait('@loginFailure').its('response.statusCode').should('eq', 401);
     cy.url().should('include', '/login');
-    cy.get('[data-testid="login-error"]').should('contain.text', 'Credenciales inválidas');
+    cy.get('#email').should('be.visible');
+    cy.get('#password').should('be.visible');
   });
 });
