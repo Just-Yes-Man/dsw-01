@@ -13,11 +13,13 @@ import com.dsw02.empleados.config.GlobalExceptionHandler;
 import com.dsw02.empleados.config.SecurityConfig;
 import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.EmpleadoController;
+import com.dsw02.empleados.dto.DepartamentoEmbeddedResponse;
 import com.dsw02.empleados.dto.EmpleadoResponse;
 import com.dsw02.empleados.dto.EmpleadoUpdateRequest;
 import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
+import com.dsw02.empleados.service.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -55,6 +57,11 @@ class EmpleadoWriteContractTest {
         response.setDireccion("Calle 2");
         response.setTelefono("555-5678");
         response.setEmail("ana@example.com");
+        DepartamentoEmbeddedResponse departamento = new DepartamentoEmbeddedResponse();
+        departamento.setId(20L);
+        departamento.setNombre("Finanzas");
+        departamento.setEstado(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
+        response.setDepartamento(departamento);
         response.setEstadoAcceso(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
 
         when(empleadoService.update(any(String.class), any(EmpleadoUpdateRequest.class))).thenReturn(response);
@@ -64,10 +71,11 @@ class EmpleadoWriteContractTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana@example.com","password":"ana456","estadoAcceso":"ACTIVO"}
+                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":20}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clave").value("EMP-1"));
+                .andExpect(jsonPath("$.clave").value("EMP-1"))
+                .andExpect(jsonPath("$.departamento.id").value(20));
 
         mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isNoContent());
@@ -88,7 +96,7 @@ class EmpleadoWriteContractTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"bad-email","password":"ana456","estadoAcceso":"ACTIVO"}
+                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"bad-email","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":1}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
@@ -103,9 +111,24 @@ class EmpleadoWriteContractTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"duplicado@example.com","password":"ana456","estadoAcceso":"ACTIVO"}
+                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"duplicado@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":1}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
+
+        @Test
+        void shouldReturn404WhenDepartamentoNotFoundOnUpdate() throws Exception {
+                when(empleadoService.update(any(String.class), any(EmpleadoUpdateRequest.class)))
+                                .thenThrow(new ResourceNotFoundException("Departamento no encontrado"));
+
+                mockMvc.perform(put("/api/v1/empleados/EMP-1")
+                                                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("""
+                                                                {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":999}
+                                                                """))
+                                .andExpect(status().isNotFound())
+                                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        }
 }

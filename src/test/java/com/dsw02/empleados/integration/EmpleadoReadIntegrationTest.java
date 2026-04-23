@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dsw02.empleados.departamentos.entity.Departamento;
+import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
+import com.dsw02.empleados.entity.EstadoAcceso;
 import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
 import com.dsw02.empleados.repository.EmpleadoRepository;
 import java.time.Clock;
@@ -39,17 +42,23 @@ class EmpleadoReadIntegrationTest {
     private EmpleadoRepository empleadoRepository;
 
         @Autowired
+        private DepartamentoRepository departamentoRepository;
+
+        @Autowired
         private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
 
         @MockBean
         private Clock clock;
 
         private final AtomicReference<Instant> now = new AtomicReference<>(Instant.parse("2026-01-01T00:00:00Z"));
+        private Long defaultDepartamentoId;
 
     @BeforeEach
     void setUp() {
         empleadoRepository.deleteAll();
                 bloqueoAutenticacionRepository.deleteAll();
+                departamentoRepository.deleteAll();
+                defaultDepartamentoId = createDepartamento("General", EstadoAcceso.ACTIVO).getId();
                 now.set(Instant.parse("2026-01-01T00:00:00Z"));
                 when(clock.getZone()).thenReturn(ZoneOffset.UTC);
                 when(clock.withZone(ZoneId.of("UTC"))).thenReturn(clock);
@@ -66,8 +75,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/empleados").with(httpBasic("ana@example.com", "ana123")))
@@ -83,6 +92,27 @@ class EmpleadoReadIntegrationTest {
     }
 
     @Test
+    void shouldExposeDepartamentoIdInListAndRead() throws Exception {
+        Departamento departamento = createDepartamento("Ventas", EstadoAcceso.ACTIVO);
+
+        mockMvc.perform(post("/api/v1/empleados")
+                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana-rel-read@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(departamento.getId())))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/empleados").with(httpBasic("ana-rel-read@example.com", "ana123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].departamento.id").value(departamento.getId()));
+
+        mockMvc.perform(get("/api/v1/empleados/EMP-1").with(httpBasic("ana-rel-read@example.com", "ana123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.departamento.id").value(departamento.getId()));
+    }
+
+    @Test
     void shouldReturn404WhenNotFound() throws Exception {
                 mockMvc.perform(get("/api/v1/empleados/EMP-999").with(httpBasic("bootstrap_admin", "bootstrap123")))
                 .andExpect(status().isNotFound());
@@ -95,8 +125,8 @@ class EmpleadoReadIntegrationTest {
                             .with(httpBasic("bootstrap_admin", "bootstrap123"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"nombre":"Empleado %d","direccion":"Calle %d","telefono":"555-%04d","email":"empleado%d@example.com","password":"pwd%d","estadoAcceso":"ACTIVO"}
-                                    """.formatted(index, index, index, index, index)))
+                                    {"nombre":"Empleado %d","direccion":"Calle %d","telefono":"555-%04d","email":"empleado%d@example.com","password":"pwd%d","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                    """.formatted(index, index, index, index, index, defaultDepartamentoId)))
                     .andExpect(status().isCreated());
         }
 
@@ -120,8 +150,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/empleados?page=9999").with(httpBasic("bootstrap_admin", "bootstrap123")))
@@ -148,8 +178,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/empleados?page=0").with(httpBasic("ana@example.com", "wrong")))
@@ -162,8 +192,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         for (int index = 0; index < 4; index++) {
@@ -185,8 +215,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         for (int index = 0; index < 4; index++) {
@@ -207,8 +237,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         for (int index = 0; index < 5; index++) {
@@ -228,8 +258,8 @@ class EmpleadoReadIntegrationTest {
                         .with(httpBasic("bootstrap_admin", "bootstrap123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"INACTIVO"}
-                                """))
+                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"INACTIVO","departamentoId":%d}
+                                """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/empleados?page=0").with(httpBasic("ana@example.com", "ana123")))
@@ -251,8 +281,8 @@ class EmpleadoReadIntegrationTest {
                                                 .with(httpBasic("bootstrap_admin", "bootstrap123"))
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content("""
-                                                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO"}
-                                                                """))
+                                                                {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
+                                                                """.formatted(defaultDepartamentoId)))
                                 .andExpect(status().isCreated());
 
                 long[] latenciesMs = new long[30];
@@ -268,5 +298,12 @@ class EmpleadoReadIntegrationTest {
                 int p95Index = (int) Math.ceil(0.95 * latenciesMs.length) - 1;
                 long p95 = latenciesMs[p95Index];
                 assertTrue(p95 < 2_000, "p95 esperado < 2000ms, actual=" + p95 + "ms");
+        }
+
+        private Departamento createDepartamento(String nombre, EstadoAcceso estado) {
+                Departamento departamento = new Departamento();
+                departamento.setNombre(nombre);
+                departamento.setEstado(estado);
+                return departamentoRepository.save(departamento);
         }
 }

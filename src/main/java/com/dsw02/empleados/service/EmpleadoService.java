@@ -1,9 +1,12 @@
 package com.dsw02.empleados.service;
 
 import com.dsw02.empleados.dto.EmpleadoCreateRequest;
+import com.dsw02.empleados.dto.DepartamentoEmbeddedResponse;
 import com.dsw02.empleados.dto.EmpleadoPageResponse;
 import com.dsw02.empleados.dto.EmpleadoResponse;
 import com.dsw02.empleados.dto.EmpleadoUpdateRequest;
+import com.dsw02.empleados.departamentos.entity.Departamento;
+import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
 import com.dsw02.empleados.entity.Empleado;
 import com.dsw02.empleados.entity.EmpleadoId;
 import com.dsw02.empleados.entity.EstadoAcceso;
@@ -26,9 +29,11 @@ public class EmpleadoService {
     private static final int PAGE_SIZE = 10;
 
     private final EmpleadoRepository empleadoRepository;
+    private final DepartamentoRepository departamentoRepository;
 
-    public EmpleadoService(EmpleadoRepository empleadoRepository) {
+    public EmpleadoService(EmpleadoRepository empleadoRepository, DepartamentoRepository departamentoRepository) {
         this.empleadoRepository = empleadoRepository;
+        this.departamentoRepository = departamentoRepository;
     }
 
     @Transactional
@@ -36,6 +41,8 @@ public class EmpleadoService {
         if (empleadoRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("email ya está registrado");
         }
+
+        validateDepartamentoActivo(request.getDepartamentoId());
 
         Long nextConsecutivo = empleadoRepository.findMaxConsecutivo() + 1;
         String clave = PREFIJO + nextConsecutivo;
@@ -49,6 +56,7 @@ public class EmpleadoService {
         empleado.setEmail(request.getEmail());
         empleado.setPassword(request.getPassword());
         empleado.setEstadoAcceso(request.getEstadoAcceso() == null ? EstadoAcceso.ACTIVO : request.getEstadoAcceso());
+        empleado.setDepartamentoId(request.getDepartamentoId());
 
         Empleado saved = empleadoRepository.save(empleado);
         LOGGER.info("event=empleado_created clave={} prefijo={} consecutivo={}", saved.getClave(), PREFIJO, nextConsecutivo);
@@ -93,6 +101,8 @@ public class EmpleadoService {
         Empleado empleado = empleadoRepository.findByClave(clave)
                 .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
 
+        validateDepartamentoActivo(request.getDepartamentoId());
+
         empleadoRepository.findByEmail(request.getEmail())
             .filter(existing -> !existing.getClave().equals(clave))
             .ifPresent(existing -> {
@@ -105,6 +115,7 @@ public class EmpleadoService {
         empleado.setEmail(request.getEmail());
         empleado.setPassword(request.getPassword());
         empleado.setEstadoAcceso(request.getEstadoAcceso());
+        empleado.setDepartamentoId(request.getDepartamentoId());
 
         Empleado saved = empleadoRepository.save(empleado);
         LOGGER.info("event=empleado_updated clave={}", saved.getClave());
@@ -127,7 +138,31 @@ public class EmpleadoService {
         response.setDireccion(empleado.getDireccion());
         response.setTelefono(empleado.getTelefono());
         response.setEmail(empleado.getEmail());
+        response.setDepartamento(toDepartamentoEmbedded(empleado.getDepartamentoId()));
         response.setEstadoAcceso(empleado.getEstadoAcceso());
         return response;
+    }
+
+    private void validateDepartamentoActivo(Long departamentoId) {
+        if (departamentoId == null) {
+            throw new IllegalArgumentException("departamentoId es obligatorio");
+        }
+        departamentoRepository.findByIdAndEstado(departamentoId, EstadoAcceso.ACTIVO)
+                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+    }
+
+    private DepartamentoEmbeddedResponse toDepartamentoEmbedded(Long departamentoId) {
+        if (departamentoId == null) {
+            return null;
+        }
+
+        Departamento departamento = departamentoRepository.findByIdAndEstado(departamentoId, EstadoAcceso.ACTIVO)
+                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+
+        DepartamentoEmbeddedResponse embedded = new DepartamentoEmbeddedResponse();
+        embedded.setId(departamento.getId());
+        embedded.setNombre(departamento.getNombre());
+        embedded.setEstado(departamento.getEstado());
+        return embedded;
     }
 }

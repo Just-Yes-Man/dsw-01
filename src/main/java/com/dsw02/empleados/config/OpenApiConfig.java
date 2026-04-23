@@ -14,12 +14,17 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-                .info(new Info().title("API de Empleados").version("1.0.0"))
+            .info(new Info().title("API de Empleados").version("1.1.0")
+                .description("Incluye autenticación Basic para endpoints protegidos de negocio y endpoints públicos de sesión para frontend en /api/v1/auth/*"))
                 .addSecurityItem(new SecurityRequirement().addList("basicAuth"))
                 .components(new Components()
                         .addSecuritySchemes("basicAuth", new SecurityScheme()
                                 .name("basicAuth")
                                 .type(SecurityScheme.Type.HTTP)
-                                .scheme("basic")));
+                    .scheme("basic"))
+                .addSecuritySchemes("sessionCookie", new SecurityScheme()
+                    .name("JSESSIONID")
+                    .type(SecurityScheme.Type.APIKEY)
+                    .in(SecurityScheme.In.COOKIE)));
     }
 }

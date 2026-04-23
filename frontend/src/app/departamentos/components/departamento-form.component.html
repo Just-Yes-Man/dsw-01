@@ -1,0 +1,21 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="form-card panel">
+  <h2 class="form-title">{{ mode === 'create' ? 'Crear departamento' : 'Editar departamento' }}</h2>
+
+  <div class="field-grid">
+    <div class="field-row">
+      <label for="nombre">Nombre</label>
+      <input id="nombre" formControlName="nombre" />
+    </div>
+  </div>
+
+  <p *ngIf="form.controls['nombre']?.touched && form.controls['nombre']?.invalid" class="error">
+    El nombre es obligatorio y debe tener máximo 255 caracteres.
+  </p>
+
+  <p *ngIf="backendError" class="error">{{ backendError }}</p>
+
+  <div class="actions">
+    <button type="button" class="secondary" (click)="cancel.emit()" [disabled]="submitting">Cancelar</button>
+    <button type="submit" [disabled]="submitting">Guardar</button>
+  </div>
+</form>

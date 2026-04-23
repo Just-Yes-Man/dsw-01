@@ -1,0 +1,61 @@
+<header class="toolbar panel">
+  <h1>Departamentos</h1>
+  <div class="toolbar-actions">
+    <button type="button" (click)="goToCreate()">Nuevo departamento</button>
+    <button type="button" class="secondary" (click)="logout()">Cerrar sesión</button>
+  </div>
+</header>
+
+<p *ngIf="store.listState().loading">Cargando...</p>
+<p *ngIf="store.listState().error" class="error">{{ store.listState().error }}</p>
+
+<table *ngIf="!store.listState().loading && store.items().length > 0" class="list-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nombre</th>
+      <th>Estado</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let departamento of store.items()">
+      <td>{{ departamento.id }}</td>
+      <td>{{ departamento.nombre }}</td>
+      <td>
+        <span class="status" [class.status-inactive]="departamento.estado === 'INACTIVO'">
+          {{ departamento.estado }}
+        </span>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button type="button" class="secondary" (click)="goToEdit(departamento.id)">Editar</button>
+          <button type="button" class="danger" (click)="openDelete(departamento.id)">Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="!store.listState().loading && store.items().length === 0" class="empty-state">No hay departamentos para mostrar.</p>
+
+<footer class="pagination panel">
+  <button type="button" class="secondary" (click)="load(store.listState().page - 1)" [disabled]="store.listState().page <= 0">Anterior</button>
+  <span>Página {{ store.listState().page + 1 }}</span>
+  <button
+    type="button"
+    class="secondary"
+    (click)="load(store.listState().page + 1)"
+    [disabled]="(store.listState().page + 1) * store.listState().size >= store.listState().totalElements"
+  >
+    Siguiente
+  </button>
+</footer>
+
+<app-departamento-delete-confirm-dialog
+  [open]="!!confirmId"
+  [processing]="confirmProcessing"
+  [departamentoId]="confirmId"
+  (cancel)="closeDelete()"
+  (confirm)="confirmDelete()"
+/>
