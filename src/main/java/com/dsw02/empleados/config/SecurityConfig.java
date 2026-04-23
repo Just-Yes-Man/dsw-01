@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.Customizer;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -165,20 +166,31 @@ public class SecurityConfig {
     }
 
     private boolean matchesStoredPassword(String rawPassword, String storedPassword) {
-        try {
-            return passwordEncoder.matches(rawPassword, storedPassword);
-        } catch (IllegalArgumentException ex) {
-            // Fallback for legacy plaintext records that were created before password hashing.
-            return MessageDigest.isEqual(
-                    storedPassword.getBytes(StandardCharsets.UTF_8),
-                    rawPassword.getBytes(StandardCharsets.UTF_8)
-            );
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return false;
         }
+
+        if (isBcryptHash(storedPassword)) {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        }
+
+        // Fallback for legacy plaintext records that were created before password hashing.
+        return MessageDigest.isEqual(
+                storedPassword.getBytes(StandardCharsets.UTF_8),
+                rawPassword.getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
+    private boolean isBcryptHash(String passwordValue) {
+        return passwordValue.startsWith("$2a$")
+                || passwordValue.startsWith("$2b$")
+                || passwordValue.startsWith("$2y$");
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(
