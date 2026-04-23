@@ -14,11 +14,6 @@ on:
     branches:
       - 'master'
       - 'release'
-    paths:
-      - 'frontend/**'
-      - 'src/**'
-      - 'pom.xml'
-      - '.github/workflows/01-ci-tests.yml'
 
 jobs:
   backend-tests:
@@ -72,7 +67,7 @@ jobs:
 
   cypress-smoke:
     name: Cypress Smoke Test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
