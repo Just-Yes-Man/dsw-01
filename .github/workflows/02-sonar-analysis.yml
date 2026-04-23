@@ -5,6 +5,7 @@ on:
     branches:
       - 'master'
       - 'release'
+      - 'develop'
     paths:
       - 'src/**'
       - 'pom.xml'
@@ -33,8 +34,8 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
-          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY != '' && vars.SONAR_PROJECT_KEY || 'Just-Yes-Man_dsw-01' }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION != '' && vars.SONAR_ORGANIZATION || 'just-yes-man' }}
         run: |
           set -euo pipefail
 
@@ -42,9 +43,7 @@ jobs:
           if [ -n "${SONAR_PROJECT_KEY}" ]; then
             SONAR_ARGS="${SONAR_ARGS} -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
           fi
-          if [ -n "${SONAR_ORGANIZATION}" ]; then
-            SONAR_ARGS="${SONAR_ARGS} -Dsonar.organization=${SONAR_ORGANIZATION}"
-          fi
+          SONAR_ARGS="${SONAR_ARGS} -Dsonar.organization=${SONAR_ORGANIZATION}"
 
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url="${SONAR_HOST_URL}" \
