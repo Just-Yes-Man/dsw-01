@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +27,20 @@ public class EmpleadoService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmpleadoService.class);
     private static final String PREFIJO = "EMP-";
+    private static final String EMPLEADO_NO_ENCONTRADO = "Empleado no encontrado";
+    private static final String DEPARTAMENTO_NO_ENCONTRADO = "Departamento no encontrado";
     private static final int PAGE_SIZE = 10;
 
     private final EmpleadoRepository empleadoRepository;
     private final DepartamentoRepository departamentoRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public EmpleadoService(EmpleadoRepository empleadoRepository, DepartamentoRepository departamentoRepository) {
+    public EmpleadoService(EmpleadoRepository empleadoRepository,
+                           DepartamentoRepository departamentoRepository,
+                           PasswordEncoder passwordEncoder) {
         this.empleadoRepository = empleadoRepository;
         this.departamentoRepository = departamentoRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -54,7 +61,7 @@ public class EmpleadoService {
         empleado.setDireccion(request.getDireccion());
         empleado.setTelefono(request.getTelefono());
         empleado.setEmail(request.getEmail());
-        empleado.setPassword(request.getPassword());
+        empleado.setPassword(passwordEncoder.encode(request.getPassword()));
         empleado.setEstadoAcceso(request.getEstadoAcceso() == null ? EstadoAcceso.ACTIVO : request.getEstadoAcceso());
         empleado.setDepartamentoId(request.getDepartamentoId());
 
@@ -78,13 +85,7 @@ public class EmpleadoService {
         response.setTotalElements(pageResult.getTotalElements());
         response.setItems(items);
 
-        LOGGER.info(
-            "event=empleado_query_paged page={} size={} totalElements={} itemsCount={}",
-            response.getPage(),
-            response.getSize(),
-            response.getTotalElements(),
-            response.getItems().size()
-        );
+        LOGGER.info("event=empleado_query_paged");
 
         return response;
     }
@@ -92,14 +93,14 @@ public class EmpleadoService {
     @Transactional(readOnly = true)
     public EmpleadoResponse findByClave(String clave) {
         Empleado empleado = empleadoRepository.findByClave(clave)
-                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(EMPLEADO_NO_ENCONTRADO));
         return toResponse(empleado);
     }
 
     @Transactional
     public EmpleadoResponse update(String clave, EmpleadoUpdateRequest request) {
         Empleado empleado = empleadoRepository.findByClave(clave)
-                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(EMPLEADO_NO_ENCONTRADO));
 
         validateDepartamentoActivo(request.getDepartamentoId());
 
@@ -113,12 +114,12 @@ public class EmpleadoService {
         empleado.setDireccion(request.getDireccion());
         empleado.setTelefono(request.getTelefono());
         empleado.setEmail(request.getEmail());
-        empleado.setPassword(request.getPassword());
+        empleado.setPassword(passwordEncoder.encode(request.getPassword()));
         empleado.setEstadoAcceso(request.getEstadoAcceso());
         empleado.setDepartamentoId(request.getDepartamentoId());
 
         Empleado saved = empleadoRepository.save(empleado);
-        LOGGER.info("event=empleado_updated clave={}", saved.getClave());
+        LOGGER.info("event=empleado_updated");
 
         return toResponse(saved);
     }
@@ -126,9 +127,9 @@ public class EmpleadoService {
     @Transactional
     public void delete(String clave) {
         Empleado empleado = empleadoRepository.findByClave(clave)
-                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(EMPLEADO_NO_ENCONTRADO));
         empleadoRepository.delete(empleado);
-        LOGGER.info("event=empleado_deleted clave={}", clave);
+        LOGGER.info("event=empleado_deleted");
     }
 
     private EmpleadoResponse toResponse(Empleado empleado) {
@@ -148,7 +149,7 @@ public class EmpleadoService {
             throw new IllegalArgumentException("departamentoId es obligatorio");
         }
         departamentoRepository.findByIdAndEstado(departamentoId, EstadoAcceso.ACTIVO)
-                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(DEPARTAMENTO_NO_ENCONTRADO));
     }
 
     private DepartamentoEmbeddedResponse toDepartamentoEmbedded(Long departamentoId) {
@@ -157,7 +158,7 @@ public class EmpleadoService {
         }
 
         Departamento departamento = departamentoRepository.findByIdAndEstado(departamentoId, EstadoAcceso.ACTIVO)
-                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(DEPARTAMENTO_NO_ENCONTRADO));
 
         DepartamentoEmbeddedResponse embedded = new DepartamentoEmbeddedResponse();
         embedded.setId(departamento.getId());

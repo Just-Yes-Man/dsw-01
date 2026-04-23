@@ -6,6 +6,8 @@ import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.Customizer;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -28,6 +29,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
@@ -43,11 +45,12 @@ public class SecurityConfig {
     private final EmpleadoUserDetailsService empleadoUserDetailsService;
     private final AuthLockoutService authLockoutService;
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
+    private final PasswordEncoder passwordEncoder;
 
-    @Value("${security.bootstrap.user:bootstrap_admin}")
+    @Value("${security.bootstrap.user:}")
     private String bootstrapUser;
 
-    @Value("${security.bootstrap.password:bootstrap123}")
+    @Value("${security.bootstrap.password:}")
     private String bootstrapPassword;
 
     @Value("${app.cors.allowed-origins:http://localhost:4200}")
@@ -55,10 +58,12 @@ public class SecurityConfig {
 
     public SecurityConfig(EmpleadoUserDetailsService empleadoUserDetailsService,
                           AuthLockoutService authLockoutService,
-                          SessionAuthenticationFilter sessionAuthenticationFilter) {
+                          SessionAuthenticationFilter sessionAuthenticationFilter,
+                          PasswordEncoder passwordEncoder) {
         this.empleadoUserDetailsService = empleadoUserDetailsService;
         this.authLockoutService = authLockoutService;
         this.sessionAuthenticationFilter = sessionAuthenticationFilter;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Bean
@@ -69,8 +74,8 @@ public class SecurityConfig {
                 String username = authentication.getName();
                 String password = String.valueOf(authentication.getCredentials());
 
-                if (bootstrapUser.equals(username) && bootstrapPassword.equals(password)) {
-                    LOGGER.info("event=auth_result outcome=SUCCESS principal={} bootstrap=true", username);
+                if (isBootstrapUser(username) && isBootstrapPassword(password)) {
+                    LOGGER.info("event=auth_result outcome=SUCCESS bootstrap=true");
                     return new UsernamePasswordAuthenticationToken(
                             username,
                             null,
@@ -79,7 +84,7 @@ public class SecurityConfig {
                 }
 
                 if (authLockoutService.isBlocked(username)) {
-                    LOGGER.warn("event=auth_result outcome=TEMPORARY_LOCK principal={}", username);
+                    LOGGER.warn("event=auth_result outcome=TEMPORARY_LOCK");
                     throw new AccountTemporarilyLockedException("Cuenta bloqueada temporalmente");
                 }
 
@@ -88,7 +93,7 @@ public class SecurityConfig {
                     userDetails = empleadoUserDetailsService.loadUserByUsername(username);
                 } catch (UsernameNotFoundException ex) {
                     authLockoutService.registerFailure(username);
-                    LOGGER.warn("event=auth_result outcome=INVALID_CREDENTIALS principal={}", username);
+                    LOGGER.warn("event=auth_result outcome=INVALID_CREDENTIALS");
                     throw new BadCredentialsException("Credenciales inválidas");
                 }
 
@@ -96,18 +101,18 @@ public class SecurityConfig {
                     throw new DisabledException("Cuenta inactiva");
                 }
 
-                if (!userDetails.getPassword().equals(password)) {
+                if (!matchesStoredPassword(password, userDetails.getPassword())) {
                     boolean blocked = authLockoutService.registerFailure(username);
                     if (blocked) {
-                        LOGGER.warn("event=auth_result outcome=TEMPORARY_LOCK principal={}", username);
+                        LOGGER.warn("event=auth_result outcome=TEMPORARY_LOCK");
                         throw new AccountTemporarilyLockedException("Cuenta bloqueada temporalmente");
                     }
-                    LOGGER.warn("event=auth_result outcome=INVALID_CREDENTIALS principal={}", username);
+                    LOGGER.warn("event=auth_result outcome=INVALID_CREDENTIALS");
                     throw new BadCredentialsException("Credenciales inválidas");
                 }
 
                 authLockoutService.registerSuccess(username);
-                LOGGER.info("event=auth_result outcome=SUCCESS principal={} bootstrap=false", username);
+                LOGGER.info("event=auth_result outcome=SUCCESS bootstrap=false");
                 return new UsernamePasswordAuthenticationToken(
                         username,
                         null,
@@ -125,7 +130,7 @@ public class SecurityConfig {
     private AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, authException) -> {
             boolean locked = isLocked(authException);
-            LOGGER.warn("event=auth_failed path={} method={} locked={}", request.getRequestURI(), request.getMethod(), locked);
+            LOGGER.warn("event=auth_failed locked={}", locked);
             response.setStatus(locked ? HttpStatus.LOCKED.value() : HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             objectMapper.writeValue(response.getWriter(), locked
@@ -145,10 +150,35 @@ public class SecurityConfig {
         return false;
     }
 
+    private boolean isBootstrapUser(String username) {
+        return bootstrapUser != null && !bootstrapUser.isBlank() && bootstrapUser.equals(username);
+    }
+
+    private boolean isBootstrapPassword(String providedPassword) {
+        if (bootstrapPassword == null || bootstrapPassword.isBlank()) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                bootstrapPassword.getBytes(StandardCharsets.UTF_8),
+                providedPassword.getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
+    private boolean matchesStoredPassword(String rawPassword, String storedPassword) {
+        try {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        } catch (IllegalArgumentException ex) {
+            // Fallback for legacy plaintext records that were created before password hashing.
+            return MessageDigest.isEqual(
+                    storedPassword.getBytes(StandardCharsets.UTF_8),
+                    rawPassword.getBytes(StandardCharsets.UTF_8)
+            );
+        }
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(

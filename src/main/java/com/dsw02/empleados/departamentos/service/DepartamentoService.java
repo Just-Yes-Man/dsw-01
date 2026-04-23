@@ -27,6 +27,8 @@ public class DepartamentoService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DepartamentoService.class);
     private static final int PAGE_SIZE = 10;
+    private static final String DEPARTAMENTO_NO_ENCONTRADO = "Departamento no encontrado";
+    private static final String DEPARTAMENTO_NOMBRE_CONFLICTO = "Departamento con nombre ya existe";
 
     private final DepartamentoRepository departamentoRepository;
     private final EmpleadoRepository empleadoRepository;
@@ -40,9 +42,8 @@ public class DepartamentoService {
     @Transactional
     public DepartamentoResponse create(DepartamentoCreateRequest request) {
         if (departamentoRepository.existsByNombreAndEstado(request.getNombre(), EstadoAcceso.ACTIVO)) {
-            LOGGER.warn("event=departamento_create_conflict nombre=\"{}\"", request.getNombre());
-            throw new DepartamentoConflictException(
-                    "Departamento con nombre '" + request.getNombre() + "' ya existe");
+            LOGGER.warn("event=departamento_create_conflict");
+            throw new DepartamentoConflictException(DEPARTAMENTO_NOMBRE_CONFLICTO);
         }
 
         Departamento departamento = new Departamento();
@@ -50,7 +51,7 @@ public class DepartamentoService {
         departamento.setEstado(EstadoAcceso.ACTIVO);
 
         Departamento saved = departamentoRepository.save(departamento);
-        LOGGER.info("event=departamento_created id={} nombre=\"{}\"", saved.getId(), saved.getNombre());
+        LOGGER.info("event=departamento_created");
         return toResponse(saved);
     }
 
@@ -68,15 +69,14 @@ public class DepartamentoService {
         response.setTotalElements(pageResult.getTotalElements());
         response.setItems(items);
 
-        LOGGER.info("event=departamento_query_paged page={} size={} totalElements={}",
-                page, PAGE_SIZE, pageResult.getTotalElements());
+        LOGGER.info("event=departamento_query_paged");
         return response;
     }
 
     @Transactional(readOnly = true)
     public DepartamentoDetailResponse findById(Long id) {
         Departamento departamento = departamentoRepository.findByIdAndEstado(id, EstadoAcceso.ACTIVO)
-                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(DEPARTAMENTO_NO_ENCONTRADO));
 
         List<EmpleadoSummaryResponse> empleados = empleadoRepository
                 .findTop50ByDepartamentoIdOrderByIdConsecutivoAsc(id)
@@ -84,42 +84,41 @@ public class DepartamentoService {
                 .map(this::toEmpleadoSummary)
                 .toList();
 
-        LOGGER.info("event=departamento_read id={}", id);
+        LOGGER.info("event=departamento_read");
         return toDetailResponse(departamento, empleados);
     }
 
     @Transactional
     public DepartamentoResponse update(Long id, DepartamentoUpdateRequest request) {
         Departamento departamento = departamentoRepository.findByIdAndEstado(id, EstadoAcceso.ACTIVO)
-                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(DEPARTAMENTO_NO_ENCONTRADO));
 
         if (departamentoRepository.existsByNombreAndEstadoAndIdNot(
                 request.getNombre(), EstadoAcceso.ACTIVO, id)) {
-            LOGGER.warn("event=departamento_update_conflict id={} nombre=\"{}\"", id, request.getNombre());
-            throw new DepartamentoConflictException(
-                    "Departamento con nombre '" + request.getNombre() + "' ya existe");
+            LOGGER.warn("event=departamento_update_conflict");
+            throw new DepartamentoConflictException(DEPARTAMENTO_NOMBRE_CONFLICTO);
         }
 
         departamento.setNombre(request.getNombre());
         Departamento saved = departamentoRepository.save(departamento);
-        LOGGER.info("event=departamento_updated id={} nombre=\"{}\"", saved.getId(), saved.getNombre());
+        LOGGER.info("event=departamento_updated");
         return toResponse(saved);
     }
 
     @Transactional
     public void delete(Long id) {
         Departamento departamento = departamentoRepository.findByIdAndEstado(id, EstadoAcceso.ACTIVO)
-                .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException(DEPARTAMENTO_NO_ENCONTRADO));
 
         if (empleadoRepository.existsByDepartamentoId(id)) {
-            LOGGER.warn("event=departamento_delete_rejected id={} reason=has_employees", id);
+            LOGGER.warn("event=departamento_delete_rejected reason=has_employees");
             throw new DepartamentoConflictException(
                     "No se puede eliminar el departamento porque tiene empleados asociados");
         }
 
         departamento.setEstado(EstadoAcceso.INACTIVO);
         departamentoRepository.save(departamento);
-        LOGGER.info("event=departamento_deleted id={}", id);
+        LOGGER.info("event=departamento_deleted");
     }
 
     private DepartamentoResponse toResponse(Departamento departamento) {

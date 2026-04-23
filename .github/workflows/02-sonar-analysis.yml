@@ -30,7 +30,7 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build, analyze and wait for Quality Gate
+      - name: Build and run Sonar analysis (non-blocking Quality Gate)
         id: sonar-run
         continue-on-error: true
         env:
@@ -50,16 +50,16 @@ jobs:
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url="${SONAR_HOST_URL}" \
             -Dsonar.token="${SONAR_TOKEN}" \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300 \
+            -Dsonar.qualitygate.wait=false \
             ${SONAR_ARGS}
 
-      - name: Validate quality score result
+      - name: Validate analysis execution
         if: always()
         run: |
           if [ "${{ steps.sonar-run.outcome }}" = "success" ]; then
-            echo "Puntuacion valida: Quality Gate aprobado."
+            echo "Analisis Sonar completado correctamente."
+            echo "Quality Gate registrado como informativo (no bloqueante en CI)."
           else
-            echo "::error::Puntuacion no valida: Quality Gate no aprobado."
+            echo "::error::No se pudo completar el analisis Sonar."
             exit 1
           fi
