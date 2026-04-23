@@ -5,10 +5,6 @@ on:
     branches:
       - 'master'
       - 'release'
-    paths:
-      - 'src/**'
-      - 'pom.xml'
-      - '.github/workflows/02-sonar-analysis.yml'
   workflow_dispatch:
 
 jobs:
