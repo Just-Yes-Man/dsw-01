@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmpleadoUserDetailsService implements UserDetailsService {
 
+    private static final String EMPLEADO_NO_ENCONTRADO = "Empleado no encontrado";
+
     private final EmpleadoRepository empleadoRepository;
 
     public EmpleadoUserDetailsService(EmpleadoRepository empleadoRepository) {
@@ -23,7 +25,7 @@ public class EmpleadoUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Empleado empleado = empleadoRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Empleado no encontrado"));
+                .orElseThrow(() -> new UsernameNotFoundException(EMPLEADO_NO_ENCONTRADO));
 
         boolean enabled = empleado.getEstadoAcceso() == EstadoAcceso.ACTIVO;
         return User.withUsername(empleado.getEmail())
