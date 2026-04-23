@@ -5,7 +5,6 @@ on:
     branches:
       - 'master'
       - 'release'
-      - 'develop'
     paths:
       - 'src/**'
       - 'pom.xml'
@@ -16,10 +15,6 @@ jobs:
   sonar-analysis:
     name: Sonar Analysis + Quality Gate
     runs-on: ubuntu-latest
-    env:
-      SONAR_HOST_URL: https://sonarcloud.io
-      SONAR_PROJECT_KEY: Just-Yes-Man_dsw-01
-      SONAR_ORGANIZATION: just-yes-man
 
     steps:
       - name: Checkout
@@ -34,55 +29,46 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Validate Sonar project access
+      - name: Build and run Sonar analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SONAR_TOKEN}" ]; then
-            echo "::error::Falta el secret SONAR_TOKEN en GitHub."
-            exit 1
+          SONAR_ARGS=""
+          if [ -n "${SONAR_PROJECT_KEY}" ]; then
+            SONAR_ARGS="${SONAR_ARGS} -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
           fi
-
-          AUTH_CODE=$(curl -sS -u "${SONAR_TOKEN}:" -w "%{http_code}" -o /tmp/sonar_auth.json "${SONAR_HOST_URL}/api/authentication/validate")
-          if [ "${AUTH_CODE}" != "200" ] || ! grep -q '"valid":true' /tmp/sonar_auth.json; then
-            echo "::error::SONAR_TOKEN invalido o sin acceso a SonarCloud."
-            cat /tmp/sonar_auth.json || true
-            exit 1
+          if [ -n "${SONAR_ORGANIZATION}" ]; then
+            SONAR_ARGS="${SONAR_ARGS} -Dsonar.organization=${SONAR_ORGANIZATION}"
           fi
-
-          URL="${SONAR_HOST_URL}/api/components/show?component=${SONAR_PROJECT_KEY}&organization=${SONAR_ORGANIZATION}"
-          HTTP_CODE=$(curl -sS -u "${SONAR_TOKEN}:" -w "%{http_code}" -o /tmp/sonar_project.json "${URL}")
-
-          if [ "${HTTP_CODE}" != "200" ]; then
-            echo "::error::No se pudo acceder al proyecto SonarCloud (HTTP ${HTTP_CODE})."
-            echo "::error::Verifica sonar.projectKey=${SONAR_PROJECT_KEY}, sonar.organization=${SONAR_ORGANIZATION} y permisos del SONAR_TOKEN."
-            cat /tmp/sonar_project.json || true
-            exit 1
-          fi
-
-      - name: Build, analyze and wait for Quality Gate
-        id: sonar-run
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          echo "Using sonar.projectKey=${SONAR_PROJECT_KEY}"
-          echo "Using sonar.organization=${SONAR_ORGANIZATION}"
-          echo "Using sonar.host.url=${SONAR_HOST_URL}"
 
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url="${SONAR_HOST_URL}" \
             -Dsonar.token="${SONAR_TOKEN}" \
-            -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
-            -Dsonar.organization="${SONAR_ORGANIZATION}" \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300 \
-            -Dsonar.verbose=true
+            ${SONAR_ARGS}
+
+      - name: Check Sonar Quality Gate
+        id: quality-gate
+        continue-on-error: true
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
 
       - name: Validate quality score result
-        if: success()
+        if: always()
         run: |
-          echo "Puntuacion valida: Quality Gate aprobado."
+          STATUS="${{ steps.quality-gate.outputs.quality-gate-status }}"
+          echo "Sonar Quality Gate status: ${STATUS}"
+
+          if [ "${STATUS}" = "PASSED" ]; then
+            echo "Puntuacion valida: Quality Gate aprobado."
+          else
+            echo "::error::Puntuacion no valida: Quality Gate no aprobado."
+            exit 1
+          fi
