@@ -6,50 +6,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dsw02.empleados.departamentos.entity.Departamento;
-import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
 import com.dsw02.empleados.entity.EstadoAcceso;
-import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
-import com.dsw02.empleados.repository.EmpleadoRepository;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class EmpleadoCreateIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private EmpleadoRepository empleadoRepository;
-
-    @Autowired
-    private DepartamentoRepository departamentoRepository;
-
-    @Autowired
-    private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
-
-    @BeforeEach
-    void setUp() {
-        bloqueoAutenticacionRepository.deleteAll();
-        empleadoRepository.deleteAll();
-        departamentoRepository.deleteAll();
-    }
+class EmpleadoCreateIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void shouldCreateEmpleado() throws Exception {
         Departamento departamento = createDepartamento("General", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+            .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -65,7 +34,7 @@ class EmpleadoCreateIntegrationTest {
         Departamento departamento = createDepartamento("General", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+            .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                 {"nombre":"%s","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -78,7 +47,7 @@ class EmpleadoCreateIntegrationTest {
         Departamento departamento = createDepartamento("General", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+            .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                 {"clave":"EMP-999","nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -91,7 +60,7 @@ class EmpleadoCreateIntegrationTest {
         Departamento departamento = createDepartamento("Ventas", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                     {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana.dep@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -109,7 +78,7 @@ class EmpleadoCreateIntegrationTest {
     @Test
     void shouldReturn404WhenDepartamentoNotFoundOnCreate() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                     {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana.no-dep@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":999999}
@@ -118,10 +87,4 @@ class EmpleadoCreateIntegrationTest {
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
-    private Departamento createDepartamento(String nombre, EstadoAcceso estado) {
-        Departamento departamento = new Departamento();
-        departamento.setNombre(nombre);
-        departamento.setEstado(estado);
-        return departamentoRepository.save(departamento);
-    }
 }

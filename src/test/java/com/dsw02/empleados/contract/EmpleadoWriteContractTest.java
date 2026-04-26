@@ -20,6 +20,7 @@ import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.dsw02.empleados.service.ResourceNotFoundException;
+import com.dsw02.empleados.testsupport.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -51,18 +52,15 @@ class EmpleadoWriteContractTest {
 
     @Test
     void shouldUpdateAndDelete() throws Exception {
-        EmpleadoResponse response = new EmpleadoResponse();
-        response.setClave("EMP-1");
-        response.setNombre("Ana Maria");
-        response.setDireccion("Calle 2");
-        response.setTelefono("555-5678");
-        response.setEmail("ana@example.com");
-        DepartamentoEmbeddedResponse departamento = new DepartamentoEmbeddedResponse();
-        departamento.setId(20L);
-        departamento.setNombre("Finanzas");
-        departamento.setEstado(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
-        response.setDepartamento(departamento);
-        response.setEstadoAcceso(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
+        EmpleadoResponse response = TestDataFactory.empleadoResponse(
+                "EMP-1",
+                "Ana Maria",
+                "Calle 2",
+                "555-5678",
+                "ana@example.com",
+                20L,
+                "Finanzas",
+                com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
 
         when(empleadoService.update(any(String.class), any(EmpleadoUpdateRequest.class))).thenReturn(response);
         doNothing().when(empleadoService).delete("EMP-1");

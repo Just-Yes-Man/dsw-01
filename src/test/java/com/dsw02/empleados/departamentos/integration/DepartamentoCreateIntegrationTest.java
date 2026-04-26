@@ -5,47 +5,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
-import com.dsw02.empleados.EmpleadosApplication;
-import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
-import com.dsw02.empleados.repository.EmpleadoRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.dsw02.empleados.integration.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = EmpleadosApplication.class)
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class DepartamentoCreateIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private DepartamentoRepository departamentoRepository;
-
-    @Autowired
-    private EmpleadoRepository empleadoRepository;
-
-    @Autowired
-    private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
-
-    @BeforeEach
-    void setUp() {
-        empleadoRepository.deleteAll();
-        departamentoRepository.deleteAll();
-        bloqueoAutenticacionRepository.deleteAll();
-    }
+class DepartamentoCreateIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void shouldCreateDepartamentoSuccessfully() throws Exception {
         mockMvc.perform(post("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"Ventas"}
@@ -61,7 +30,7 @@ class DepartamentoCreateIntegrationTest {
     @Test
     void shouldReturn409WhenCreatingDuplicateName() throws Exception {
         mockMvc.perform(post("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"Finanzas"}
@@ -69,7 +38,7 @@ class DepartamentoCreateIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"Finanzas"}
@@ -81,7 +50,7 @@ class DepartamentoCreateIntegrationTest {
     @Test
     void shouldReturn400WhenNombreIsEmpty() throws Exception {
         mockMvc.perform(post("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":""}
@@ -93,7 +62,7 @@ class DepartamentoCreateIntegrationTest {
     @Test
     void shouldReturn400WhenNombreIsNull() throws Exception {
         mockMvc.perform(post("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {}

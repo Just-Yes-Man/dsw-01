@@ -16,6 +16,7 @@ import com.dsw02.empleados.dto.auth.SessionResponse;
 import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.AuthSessionService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
+import com.dsw02.empleados.testsupport.TestDataFactory;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,11 +49,7 @@ class AuthSessionContractTest {
 
     @Test
     void shouldReturnSessionStateWhenSessionIsValid() throws Exception {
-        SessionResponse response = new SessionResponse();
-        response.setAuthenticated(true);
-        response.setEmpleadoClave("EMP-1");
-        response.setEmail("ana@example.com");
-        response.setExpiresAt(OffsetDateTime.now().plusHours(8));
+        SessionResponse response = TestDataFactory.authenticatedSession("EMP-1", "ana@example.com");
 
         when(authSessionService.getSession(any())).thenReturn(response);
 
