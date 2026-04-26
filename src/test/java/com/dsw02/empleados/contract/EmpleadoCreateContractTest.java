@@ -18,6 +18,7 @@ import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.dsw02.empleados.service.ResourceNotFoundException;
+import com.dsw02.empleados.testsupport.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,18 +50,15 @@ class EmpleadoCreateContractTest {
 
     @Test
     void shouldCreateEmpleado() throws Exception {
-        EmpleadoResponse response = new EmpleadoResponse();
-        response.setClave("EMP-1");
-        response.setNombre("Ana");
-        response.setDireccion("Calle 1");
-        response.setTelefono("555-1234");
-        response.setEmail("ana@example.com");
-        DepartamentoEmbeddedResponse departamento = new DepartamentoEmbeddedResponse();
-        departamento.setId(10L);
-        departamento.setNombre("Ventas");
-        departamento.setEstado(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
-        response.setDepartamento(departamento);
-        response.setEstadoAcceso(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
+        EmpleadoResponse response = TestDataFactory.empleadoResponse(
+            "EMP-1",
+            "Ana",
+            "Calle 1",
+            "555-1234",
+            "ana@example.com",
+            10L,
+            "Ventas",
+            com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
 
         when(empleadoService.create(any(EmpleadoCreateRequest.class))).thenReturn(response);
 

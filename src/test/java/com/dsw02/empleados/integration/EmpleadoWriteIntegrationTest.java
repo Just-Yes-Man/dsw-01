@@ -8,50 +8,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dsw02.empleados.departamentos.entity.Departamento;
-import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
 import com.dsw02.empleados.entity.EstadoAcceso;
-import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
-import com.dsw02.empleados.repository.EmpleadoRepository;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class EmpleadoWriteIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-        @Autowired
-        private EmpleadoRepository empleadoRepository;
-
-        @Autowired
-        private DepartamentoRepository departamentoRepository;
-
-        @Autowired
-        private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
-
-        @BeforeEach
-        void setUp() {
-                bloqueoAutenticacionRepository.deleteAll();
-                empleadoRepository.deleteAll();
-                departamentoRepository.deleteAll();
-        }
+class EmpleadoWriteIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void shouldUpdateAndDeleteEmpleado() throws Exception {
         Departamento departamento = createDepartamento("General", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -59,7 +28,7 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/v1/empleados/EMP-1")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -67,10 +36,10 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Ana Maria"));
 
-        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
+        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(bootstrapAuth()))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
+        mockMvc.perform(delete("/api/v1/empleados/EMP-1").with(bootstrapAuth()))
                 .andExpect(status().isNotFound());
     }
 
@@ -79,7 +48,7 @@ class EmpleadoWriteIntegrationTest {
         Departamento departamento = createDepartamento("General", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -87,7 +56,7 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/v1/empleados/EMP-1")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"clave":"EMP-99","nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -100,7 +69,7 @@ class EmpleadoWriteIntegrationTest {
         Departamento departamento = createDepartamento("General", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"duplicado@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -108,7 +77,7 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Luis","direccion":"Calle 2","telefono":"555-5678","email":"duplicado@example.com","password":"luis123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -123,7 +92,7 @@ class EmpleadoWriteIntegrationTest {
         Departamento departamentoB = createDepartamento("Finanzas", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana-rel@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -131,7 +100,7 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/v1/empleados/EMP-1")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana-rel@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -151,7 +120,7 @@ class EmpleadoWriteIntegrationTest {
         Departamento departamentoInactivo = createDepartamento("Compras", EstadoAcceso.INACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana-inactive@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -159,7 +128,7 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/v1/empleados/EMP-1")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana Maria","direccion":"Calle 2","telefono":"555-5678","email":"ana-inactive@example.com","password":"ana456","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -168,10 +137,4 @@ class EmpleadoWriteIntegrationTest {
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
-    private Departamento createDepartamento(String nombre, EstadoAcceso estado) {
-        Departamento departamento = new Departamento();
-        departamento.setNombre(nombre);
-        departamento.setEstado(estado);
-        return departamentoRepository.save(departamento);
-    }
 }

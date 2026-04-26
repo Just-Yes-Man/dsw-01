@@ -8,44 +8,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.dsw02.empleados.departamentos.entity.Departamento;
-import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
 import com.dsw02.empleados.entity.EstadoAcceso;
-import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
-import com.dsw02.empleados.repository.EmpleadoRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class EmpleadoReadIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private EmpleadoRepository empleadoRepository;
-
-        @Autowired
-        private DepartamentoRepository departamentoRepository;
-
-        @Autowired
-        private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
+class EmpleadoReadIntegrationTest extends BaseIntegrationTest {
 
         @MockBean
         private Clock clock;
@@ -53,11 +29,8 @@ class EmpleadoReadIntegrationTest {
         private final AtomicReference<Instant> now = new AtomicReference<>(Instant.parse("2026-01-01T00:00:00Z"));
         private Long defaultDepartamentoId;
 
-    @BeforeEach
-    void setUp() {
-        empleadoRepository.deleteAll();
-                bloqueoAutenticacionRepository.deleteAll();
-                departamentoRepository.deleteAll();
+        @Override
+        protected void setupTestData() {
                 defaultDepartamentoId = createDepartamento("General", EstadoAcceso.ACTIVO).getId();
                 now.set(Instant.parse("2026-01-01T00:00:00Z"));
                 when(clock.getZone()).thenReturn(ZoneOffset.UTC);
@@ -72,7 +45,7 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldListAndReadByClave() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -96,7 +69,7 @@ class EmpleadoReadIntegrationTest {
         Departamento departamento = createDepartamento("Ventas", EstadoAcceso.ACTIVO);
 
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                                                .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana-rel-read@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -114,7 +87,7 @@ class EmpleadoReadIntegrationTest {
 
     @Test
     void shouldReturn404WhenNotFound() throws Exception {
-                mockMvc.perform(get("/api/v1/empleados/EMP-999").with(httpBasic("bootstrap_admin", "bootstrap123")))
+                mockMvc.perform(get("/api/v1/empleados/EMP-999").with(bootstrapAuth()))
                 .andExpect(status().isNotFound());
     }
 
@@ -122,7 +95,7 @@ class EmpleadoReadIntegrationTest {
     void shouldNavigatePagesAndKeepOrder() throws Exception {
         for (int index = 0; index < 25; index++) {
             mockMvc.perform(post("/api/v1/empleados")
-                            .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                            .with(bootstrapAuth())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"nombre":"Empleado %d","direccion":"Calle %d","telefono":"555-%04d","email":"empleado%d@example.com","password":"pwd%d","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -130,14 +103,14 @@ class EmpleadoReadIntegrationTest {
                     .andExpect(status().isCreated());
         }
 
-        mockMvc.perform(get("/api/v1/empleados?page=1").with(httpBasic("bootstrap_admin", "bootstrap123")))
+        mockMvc.perform(get("/api/v1/empleados?page=1").with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(1))
                 .andExpect(jsonPath("$.size").value(10))
                 .andExpect(jsonPath("$.items.length()").value(10))
                 .andExpect(jsonPath("$.items[0].clave").value("EMP-11"));
 
-        mockMvc.perform(get("/api/v1/empleados?page=2").with(httpBasic("bootstrap_admin", "bootstrap123")))
+        mockMvc.perform(get("/api/v1/empleados?page=2").with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.items.length()").value(5))
@@ -147,27 +120,27 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldReturnEmptyItemsForOutOfRangePage() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
                                 """.formatted(defaultDepartamentoId)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/v1/empleados?page=9999").with(httpBasic("bootstrap_admin", "bootstrap123")))
+        mockMvc.perform(get("/api/v1/empleados?page=9999").with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(0));
     }
 
     @Test
     void shouldRejectNegativePage() throws Exception {
-                mockMvc.perform(get("/api/v1/empleados?page=-1").with(httpBasic("bootstrap_admin", "bootstrap123")))
+                mockMvc.perform(get("/api/v1/empleados?page=-1").with(bootstrapAuth()))
                 .andExpect(status().isBadRequest());
     }
 
         @Test
         void shouldRejectNonNumericPage() throws Exception {
-                mockMvc.perform(get("/api/v1/empleados?page=abc").with(httpBasic("bootstrap_admin", "bootstrap123")))
+                mockMvc.perform(get("/api/v1/empleados?page=abc").with(bootstrapAuth()))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
         }
@@ -175,7 +148,7 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldRejectInvalidEmployeePassword() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -189,7 +162,7 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldLockAfterFiveFailedAttempts() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -212,7 +185,7 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldResetFailureCounterAfterSuccessfulAuthentication() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -234,7 +207,7 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldAllowAuthenticationAfterLockoutExpiration() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                        .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -255,7 +228,7 @@ class EmpleadoReadIntegrationTest {
     @Test
     void shouldRejectInactiveEmployeeAuthentication() throws Exception {
         mockMvc.perform(post("/api/v1/empleados")
-                        .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                                                .with(bootstrapAuth())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"INACTIVO","departamentoId":%d}
@@ -278,7 +251,7 @@ class EmpleadoReadIntegrationTest {
         @Test
         void shouldKeepPagedQueryP95UnderTwoSeconds() throws Exception {
                 mockMvc.perform(post("/api/v1/empleados")
-                                                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                                                .with(bootstrapAuth())
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .content("""
                                                                 {"nombre":"Ana","direccion":"Calle 1","telefono":"555-1234","email":"ana@example.com","password":"ana123","estadoAcceso":"ACTIVO","departamentoId":%d}
@@ -288,7 +261,7 @@ class EmpleadoReadIntegrationTest {
                 long[] latenciesMs = new long[30];
                 for (int index = 0; index < latenciesMs.length; index++) {
                         long start = System.nanoTime();
-                        mockMvc.perform(get("/api/v1/empleados?page=0").with(httpBasic("bootstrap_admin", "bootstrap123")))
+                        mockMvc.perform(get("/api/v1/empleados?page=0").with(bootstrapAuth()))
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.size").value(10));
                         latenciesMs[index] = (System.nanoTime() - start) / 1_000_000;
@@ -300,10 +273,4 @@ class EmpleadoReadIntegrationTest {
                 assertTrue(p95 < 2_000, "p95 esperado < 2000ms, actual=" + p95 + "ms");
         }
 
-        private Departamento createDepartamento(String nombre, EstadoAcceso estado) {
-                Departamento departamento = new Departamento();
-                departamento.setNombre(nombre);
-                departamento.setEstado(estado);
-                return departamentoRepository.save(departamento);
-        }
 }

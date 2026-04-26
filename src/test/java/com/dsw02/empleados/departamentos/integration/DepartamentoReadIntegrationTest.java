@@ -6,49 +6,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dsw02.empleados.departamentos.entity.Departamento;
-import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
-import com.dsw02.empleados.EmpleadosApplication;
 import com.dsw02.empleados.entity.Empleado;
 import com.dsw02.empleados.entity.EmpleadoId;
 import com.dsw02.empleados.entity.EstadoAcceso;
-import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
-import com.dsw02.empleados.repository.EmpleadoRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.dsw02.empleados.integration.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = EmpleadosApplication.class)
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class DepartamentoReadIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private DepartamentoRepository departamentoRepository;
-
-    @Autowired
-    private EmpleadoRepository empleadoRepository;
-
-    @Autowired
-    private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
-
-    @BeforeEach
-    void setUp() {
-        empleadoRepository.deleteAll();
-        departamentoRepository.deleteAll();
-        bloqueoAutenticacionRepository.deleteAll();
-    }
+class DepartamentoReadIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void shouldReturnEmptyListWhenNoDepartamentos() throws Exception {
         mockMvc.perform(get("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.size").value(10))
@@ -65,14 +34,14 @@ class DepartamentoReadIntegrationTest {
         }
 
         mockMvc.perform(get("/api/v1/departamentos?page=0")
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(10))
                 .andExpect(jsonPath("$.totalElements").value(15))
                 .andExpect(jsonPath("$.items.length()").value(10));
 
         mockMvc.perform(get("/api/v1/departamentos?page=1")
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(5));
     }
@@ -85,7 +54,7 @@ class DepartamentoReadIntegrationTest {
         Departamento saved = departamentoRepository.save(dep);
 
         mockMvc.perform(get("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(saved.getId()))
                 .andExpect(jsonPath("$.nombre").value("Recursos Humanos"))
@@ -113,7 +82,7 @@ class DepartamentoReadIntegrationTest {
         empleadoRepository.save(empleado);
 
         mockMvc.perform(get("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.empleados.length()").value(1))
                 .andExpect(jsonPath("$.empleados[0].clave").value("EMP-1"))
@@ -142,7 +111,7 @@ class DepartamentoReadIntegrationTest {
         }
 
         mockMvc.perform(get("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.empleados.length()").value(50));
     }
@@ -150,7 +119,7 @@ class DepartamentoReadIntegrationTest {
     @Test
     void shouldReturn404ForNonExistentId() throws Exception {
         mockMvc.perform(get("/api/v1/departamentos/99999")
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
@@ -168,7 +137,7 @@ class DepartamentoReadIntegrationTest {
         departamentoRepository.save(inactive);
 
         mockMvc.perform(get("/api/v1/departamentos")
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.items[0].nombre").value("Activo"));
@@ -182,7 +151,7 @@ class DepartamentoReadIntegrationTest {
         Departamento saved = departamentoRepository.save(inactive);
 
         mockMvc.perform(get("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+            .with(bootstrapAuth()))
                 .andExpect(status().isNotFound());
     }
 }

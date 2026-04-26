@@ -17,6 +17,7 @@ import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.EmpleadoService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.dsw02.empleados.service.ResourceNotFoundException;
+import com.dsw02.empleados.testsupport.TestDataFactory;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,22 +49,17 @@ class EmpleadoReadContractTest {
 
     @Test
     void shouldListAndGetByClave() throws Exception {
-        EmpleadoResponse response = new EmpleadoResponse();
-        response.setClave("EMP-1");
-        response.setNombre("Ana");
-        response.setDireccion("Calle 1");
-        response.setTelefono("555-1234");
-        DepartamentoEmbeddedResponse departamento = new DepartamentoEmbeddedResponse();
-        departamento.setId(7L);
-        departamento.setNombre("Ventas");
-        departamento.setEstado(com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
-        response.setDepartamento(departamento);
+        EmpleadoResponse response = TestDataFactory.empleadoResponse(
+                "EMP-1",
+                "Ana",
+                "Calle 1",
+                "555-1234",
+                "ana@example.com",
+                7L,
+                "Ventas",
+                com.dsw02.empleados.entity.EstadoAcceso.ACTIVO);
 
-        EmpleadoPageResponse pageResponse = new EmpleadoPageResponse();
-        pageResponse.setPage(0);
-        pageResponse.setSize(10);
-        pageResponse.setTotalElements(1);
-        pageResponse.setItems(List.of(response));
+        EmpleadoPageResponse pageResponse = TestDataFactory.empleadoPageResponse(0, 10, 1, List.of(response));
 
         when(empleadoService.findAll(0)).thenReturn(pageResponse);
         when(empleadoService.findByClave("EMP-1")).thenReturn(response);
