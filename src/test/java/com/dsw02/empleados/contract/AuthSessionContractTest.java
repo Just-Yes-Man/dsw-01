@@ -17,13 +17,13 @@ import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.AuthSessionService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
 import com.dsw02.empleados.testsupport.TestDataFactory;
-import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -65,4 +65,37 @@ class AuthSessionContractTest {
                 .andExpect(status().isNoContent())
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
     }
+
+    @Test
+    void shouldReturn401WhenSessionDoesNotExist() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/session"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldReturn401WhenSessionServiceRejectsSession() throws Exception {
+        when(authSessionService.getSession(any()))
+                .thenThrow(new AuthenticationCredentialsNotFoundException("Sesión no válida"));
+
+        mockMvc.perform(get("/api/v1/auth/session").session(new MockHttpSession()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldClearSecureCookieOnSecureLogout() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("X-Forwarded-Proto", "https")
+                        .session(new MockHttpSession()))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Secure")));
+    }
+
+        @Test
+        void shouldLogoutWithoutSessionAndStillClearCookie() throws Exception {
+                mockMvc.perform(post("/api/v1/auth/logout"))
+                                .andExpect(status().isNoContent())
+                                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
+        }
 }
