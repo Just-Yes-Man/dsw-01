@@ -2,6 +2,10 @@ name: SonarQube
 run-name: SonarQube • PR->master • @${{ github.actor }}
 
 on:
+  push:
+    branches:
+      - 'master'
+      - 'release'
   workflow_run:
     workflows: ["CI"]
     types: [completed]
