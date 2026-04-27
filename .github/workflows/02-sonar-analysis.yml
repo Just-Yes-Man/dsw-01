@@ -1,29 +1,23 @@
 name: SonarQube
-run-name: SonarQube • PR->master • @${{ github.actor }}
+run-name: SonarQube • PR/Push -> master • @${{ github.actor }}
 
 on:
   push:
     branches:
-      - 'master'
-      - 'release'
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   sonarqube-analysis:
     name: SonarQube analysis
     runs-on: ubuntu-latest
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.pull_requests[0].base.ref == 'master'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Set up Java 17
