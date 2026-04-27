@@ -14,6 +14,8 @@ security:
   bootstrap:
     user: bootstrap_admin
     password: bootstrap123
+  csrf:
+    ignored-paths: /**
 
 auth:
   session:

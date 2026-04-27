@@ -43,7 +43,7 @@ jobs:
           echo "Using sonar.projectKey=${SONAR_PROJECT_KEY}"
           echo "Using sonar.organization=${SONAR_ORGANIZATION}"
 
-          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          mvn -B verify jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url="${SONAR_HOST_URL}" \
             -Dsonar.token="${SONAR_TOKEN}" \
             -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
