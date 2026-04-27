@@ -12,6 +12,7 @@ import com.dsw02.empleados.config.SecurityConfig;
 import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.AuthController;
 import com.dsw02.empleados.dto.auth.SessionResponse;
+import com.dsw02.empleados.service.AccountTemporarilyLockedException;
 import com.dsw02.empleados.service.AuthLockoutService;
 import com.dsw02.empleados.service.AuthSessionService;
 import com.dsw02.empleados.service.EmpleadoUserDetailsService;
@@ -65,6 +66,21 @@ class AuthLoginContractTest {
     }
 
     @Test
+    void shouldSetSecureCookieWhenForwardedProtoIsHttps() throws Exception {
+        SessionResponse response = TestDataFactory.authenticatedSession("EMP-1", "ana@example.com");
+        when(authSessionService.login(any(), any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .header("X-Forwarded-Proto", "https")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"ana@example.com","password":"ana123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Secure")));
+    }
+
+    @Test
     void shouldReturn401WithGenericMessageWhenCredentialsAreInvalid() throws Exception {
         when(authSessionService.login(any(), any())).thenThrow(new BadCredentialsException("Credenciales inválidas"));
 
@@ -76,5 +92,20 @@ class AuthLoginContractTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Credenciales inválidas"));
+    }
+
+    @Test
+    void shouldReturn423WhenAccountIsTemporarilyLocked() throws Exception {
+        when(authSessionService.login(any(), any()))
+                .thenThrow(new AccountTemporarilyLockedException("Cuenta bloqueada temporalmente"));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"ana@example.com","password":"ana123"}
+                                """))
+                .andExpect(status().isLocked())
+                .andExpect(jsonPath("$.code").value("LOCKED"))
+                .andExpect(jsonPath("$.message").value("Cuenta bloqueada temporalmente"));
     }
 }
