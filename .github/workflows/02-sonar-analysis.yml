@@ -9,7 +9,7 @@ on:
 
 jobs:
   sonar-analysis:
-    name: Sonar Analysis + Quality Gate
+    name: Sonar Analysis
     runs-on: ubuntu-latest
     env:
       SONAR_HOST_URL: https://sonarcloud.io
@@ -51,24 +51,3 @@ jobs:
             -Dsonar.qualitygate.wait=true \
             -Dsonar.qualitygate.timeout=300
 
-      - name: Check Sonar Quality Gate
-        id: quality-gate
-        continue-on-error: true
-        uses: SonarSource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
-
-      - name: Validate quality score result
-        if: always()
-        run: |
-          STATUS="${{ steps.quality-gate.outputs.quality-gate-status }}"
-          echo "Sonar Quality Gate status: ${STATUS}"
-
-          if [ "${STATUS}" = "PASSED" ]; then
-            echo "Puntuacion valida: Quality Gate aprobado."
-          else
-            echo "::error::Puntuacion no valida: Quality Gate no aprobado."
-            exit 1
-          fi
