@@ -22,6 +22,9 @@ public class AuthSessionService {
     private final AuthenticationProvider authenticationProvider;
     private final EmpleadoRepository empleadoRepository;
 
+    @Value("${security.bootstrap.user:}")
+    private String bootstrapUser;
+
     @Value("${auth.session.idle-timeout-minutes:480}")
     private int idleTimeoutMinutes;
 
@@ -35,6 +38,13 @@ public class AuthSessionService {
         Authentication authentication = authenticationProvider.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
+
+        if (isBootstrapUser(authentication.getName())) {
+            session.setMaxInactiveInterval(idleTimeoutMinutes * 60);
+            session.setAttribute(SESSION_EMAIL, authentication.getName());
+            session.setAttribute(SESSION_CLAVE, "BOOTSTRAP");
+            return buildSessionResponse("BOOTSTRAP", authentication.getName());
+        }
 
         Empleado empleado = empleadoRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Credenciales inválidas"));
@@ -60,6 +70,10 @@ public class AuthSessionService {
 
     public void logout(HttpSession session) {
         session.invalidate();
+    }
+
+    private boolean isBootstrapUser(String username) {
+        return bootstrapUser != null && !bootstrapUser.isBlank() && bootstrapUser.equals(username);
     }
 
     private SessionResponse buildSessionResponse(String clave, String email) {

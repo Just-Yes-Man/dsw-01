@@ -41,7 +41,7 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBeTrue();
     });
 
-    const req = httpMock.expectOne('http://localhost:8080/api/v1/auth/login');
+    const req = httpMock.expectOne('/api/v1/auth/login');
     expect(req.request.method).toBe('POST');
     expect(req.request.withCredentials).toBeTrue();
     req.flush(expected);
@@ -50,7 +50,7 @@ describe('AuthService', () => {
   it('should mark unauthenticated on logout', () => {
     service.logout().subscribe();
 
-    const req = httpMock.expectOne('http://localhost:8080/api/v1/auth/logout');
+    const req = httpMock.expectOne('/api/v1/auth/logout');
     expect(req.request.method).toBe('POST');
     req.flush({});
 
@@ -63,7 +63,7 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBeTrue();
     });
 
-    const req = httpMock.expectOne('http://localhost:8080/api/v1/auth/session');
+    const req = httpMock.expectOne('/api/v1/auth/session');
     expect(req.request.method).toBe('GET');
     expect(req.request.withCredentials).toBeTrue();
     req.flush({
