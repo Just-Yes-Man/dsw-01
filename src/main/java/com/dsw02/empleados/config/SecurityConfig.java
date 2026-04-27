@@ -18,7 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.Customizer;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -34,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -56,6 +56,9 @@ public class SecurityConfig {
 
     @Value("${app.cors.allowed-origins:http://localhost:4200}")
     private String allowedOrigins;
+
+    @Value("${security.csrf.ignored-paths:/api/v1/auth/login,/api/v1/auth/logout}")
+    private String csrfIgnoredPaths;
 
     public SecurityConfig(EmpleadoUserDetailsService empleadoUserDetailsService,
                           AuthLockoutService authLockoutService,
@@ -190,7 +193,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .ignoringRequestMatchers(csrfIgnoredRequestMatchers()))
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(
@@ -207,6 +212,13 @@ public class SecurityConfig {
                 .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(authenticationEntryPoint()));
 
         return http.build();
+    }
+
+    private String[] csrfIgnoredRequestMatchers() {
+        return Arrays.stream(csrfIgnoredPaths.split(","))
+                .map(String::trim)
+                .filter(path -> !path.isBlank())
+                .toArray(String[]::new);
     }
 
     @Bean
