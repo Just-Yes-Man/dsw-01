@@ -1,38 +1,74 @@
-name: SonarQube
-run-name: SonarQube • PR/Push -> master • @${{ github.actor }}
+name: 02 Sonar Analysis
 
 on:
   push:
     branches:
-      - master
-  pull_request:
-    branches:
-      - master
+      - 'master'
+      - 'release'
+  workflow_dispatch:
 
 jobs:
-  sonarqube-analysis:
-    name: SonarQube analysis
+  sonar-analysis:
+    name: Sonar Analysis + Quality Gate
     runs-on: ubuntu-latest
+    env:
+      SONAR_HOST_URL: https://sonarcloud.io
+      SONAR_PROJECT_KEY: Just-Yes-Man_dsw-01
+      SONAR_ORGANIZATION: just-yes-man
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
 
-      - name: SonarQube scan (Maven)
-        working-directory: backend
+      - name: Build and run Sonar analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          ./mvnw -B -ntp -DskipTests verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-            -Dsonar.token="$SONAR_TOKEN" \
-            -Dsonar.projectKey="Just-Yes-Man_dsw-01" \
-            -Dsonar.organization="just-yes-man"
+          set -euo pipefail
+
+          if [ -z "${SONAR_TOKEN}" ]; then
+            echo "::error::Falta el secret SONAR_TOKEN en GitHub."
+            exit 1
+          fi
+
+          echo "Using sonar.projectKey=${SONAR_PROJECT_KEY}"
+          echo "Using sonar.organization=${SONAR_ORGANIZATION}"
+
+          mvn -B verify jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+            -Dsonar.organization="${SONAR_ORGANIZATION}" \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      - name: Check Sonar Quality Gate
+        id: quality-gate
+        continue-on-error: true
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+
+      - name: Validate quality score result
+        if: always()
+        run: |
+          STATUS="${{ steps.quality-gate.outputs.quality-gate-status }}"
+          echo "Sonar Quality Gate status: ${STATUS}"
+
+          if [ "${STATUS}" = "PASSED" ]; then
+            echo "Puntuacion valida: Quality Gate aprobado."
+          else
+            echo "::error::Puntuacion no valida: Quality Gate no aprobado."
+            exit 1
+          fi
