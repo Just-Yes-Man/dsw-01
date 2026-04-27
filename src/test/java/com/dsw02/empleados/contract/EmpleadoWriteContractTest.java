@@ -13,7 +13,6 @@ import com.dsw02.empleados.config.GlobalExceptionHandler;
 import com.dsw02.empleados.config.SecurityConfig;
 import com.dsw02.empleados.config.SecurityUsersConfig;
 import com.dsw02.empleados.controller.EmpleadoController;
-import com.dsw02.empleados.dto.DepartamentoEmbeddedResponse;
 import com.dsw02.empleados.dto.EmpleadoResponse;
 import com.dsw02.empleados.dto.EmpleadoUpdateRequest;
 import com.dsw02.empleados.service.AuthLockoutService;
@@ -34,7 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({SecurityConfig.class, SecurityUsersConfig.class, GlobalExceptionHandler.class})
 @TestPropertySource(properties = {
         "security.bootstrap.user=bootstrap_admin",
-        "security.bootstrap.password=bootstrap123"
+        "security.bootstrap.password=bootstrap123",
+        "security.csrf.ignored-paths=/**"
 })
 class EmpleadoWriteContractTest {
 
