@@ -20,8 +20,8 @@ spring:
 
 security:
   bootstrap:
-    user: ${BOOTSTRAP_AUTH_USER:bootstrap_admin}
-    password: ${BOOTSTRAP_AUTH_PASSWORD:bootstrap123}
+    user: ${BOOTSTRAP_AUTH_USER:}
+    password: ${BOOTSTRAP_AUTH_PASSWORD:}
 
 auth:
   session:

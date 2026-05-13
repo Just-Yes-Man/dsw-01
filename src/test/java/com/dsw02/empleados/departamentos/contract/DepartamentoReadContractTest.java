@@ -15,6 +15,7 @@ import com.dsw02.empleados.departamentos.service.DepartamentoService;
 import com.dsw02.empleados.EmpleadosApplication;
 import com.dsw02.empleados.entity.EstadoAcceso;
 import com.dsw02.empleados.service.ResourceNotFoundException;
+import com.dsw02.empleados.testsupport.TestDataFactory;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -43,16 +44,8 @@ class DepartamentoReadContractTest {
 
     @Test
     void shouldReturnPaginatedListWithSizeFixed10() throws Exception {
-        DepartamentoResponse item = new DepartamentoResponse();
-        item.setId(1L);
-        item.setNombre("Ventas");
-        item.setEstado(EstadoAcceso.ACTIVO);
-
-        DepartamentoPageResponse page = new DepartamentoPageResponse();
-        page.setPage(0);
-        page.setSize(10);
-        page.setTotalElements(1L);
-        page.setItems(List.of(item));
+        DepartamentoResponse item = TestDataFactory.departamentoResponse(1L, "Ventas", EstadoAcceso.ACTIVO);
+        DepartamentoPageResponse page = TestDataFactory.departamentoPageResponse(0, 10, 1L, List.of(item));
 
         when(departamentoService.findAll(0)).thenReturn(page);
 
@@ -66,11 +59,7 @@ class DepartamentoReadContractTest {
 
     @Test
     void shouldReturnEmptyListWhenNoDepartamentos() throws Exception {
-        DepartamentoPageResponse page = new DepartamentoPageResponse();
-        page.setPage(0);
-        page.setSize(10);
-        page.setTotalElements(0L);
-        page.setItems(Collections.emptyList());
+        DepartamentoPageResponse page = TestDataFactory.departamentoPageResponse(0, 10, 0L, Collections.emptyList());
 
         when(departamentoService.findAll(0)).thenReturn(page);
 
@@ -83,11 +72,11 @@ class DepartamentoReadContractTest {
 
     @Test
     void shouldReturnSingleDepartamentoById() throws Exception {
-        DepartamentoDetailResponse item = new DepartamentoDetailResponse();
-        item.setId(5L);
-        item.setNombre("Finanzas");
-        item.setEstado(EstadoAcceso.ACTIVO);
-        item.setEmpleados(new ArrayList<>());
+        DepartamentoDetailResponse item = TestDataFactory.departamentoDetailResponse(
+            5L,
+            "Finanzas",
+            EstadoAcceso.ACTIVO,
+            new ArrayList<>());
 
         when(departamentoService.findById(5L)).thenReturn(item);
 
@@ -102,17 +91,17 @@ class DepartamentoReadContractTest {
 
     @Test
     void shouldReturnDepartamentoByIdWithEmbeddedEmpleados() throws Exception {
-        EmpleadoSummaryResponse empleado = new EmpleadoSummaryResponse();
-        empleado.setClave("EMP-1");
-        empleado.setNombre("Ana");
-        empleado.setEmail("ana@example.com");
-        empleado.setEstadoAcceso(EstadoAcceso.ACTIVO);
+        EmpleadoSummaryResponse empleado = TestDataFactory.empleadoSummary(
+            "EMP-1",
+            "Ana",
+            "ana@example.com",
+            EstadoAcceso.ACTIVO);
 
-        DepartamentoDetailResponse item = new DepartamentoDetailResponse();
-        item.setId(10L);
-        item.setNombre("Operaciones");
-        item.setEstado(EstadoAcceso.ACTIVO);
-        item.setEmpleados(List.of(empleado));
+        DepartamentoDetailResponse item = TestDataFactory.departamentoDetailResponse(
+            10L,
+            "Operaciones",
+            EstadoAcceso.ACTIVO,
+            List.of(empleado));
 
         when(departamentoService.findById(10L)).thenReturn(item);
 

@@ -23,19 +23,32 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String VALIDATION_ERROR = "VALIDATION_ERROR";
+
+    private ResponseEntity<ErrorResponse> warnAndRespond(HttpStatus status, String code, String message, String event) {
+        LOGGER.warn("event={} message=\"{}\"", event, message);
+        return ResponseEntity.status(status)
+                .body(new ErrorResponse(code, message));
+    }
+
+    private ResponseEntity<ErrorResponse> warnAndRespond(HttpStatus status, String code, String message, String event,
+                                                         boolean includeMessage) {
+        if (includeMessage) {
+            return warnAndRespond(status, code, message, event);
+        }
+        LOGGER.warn("event={}", event);
+        return ResponseEntity.status(status)
+                .body(new ErrorResponse(code, message));
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
-        LOGGER.warn("event=resource_not_found message=\"{}\"", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("NOT_FOUND", ex.getMessage()));
+        return warnAndRespond(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), "resource_not_found");
     }
 
     @ExceptionHandler(DepartamentoConflictException.class)
     public ResponseEntity<ErrorResponse> handleDepartamentoConflict(DepartamentoConflictException ex) {
-        LOGGER.warn("event=departamento_conflict message=\"{}\"", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("CONFLICT", ex.getMessage()));
+        return warnAndRespond(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), "departamento_conflict");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -44,65 +57,52 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
 
-        LOGGER.warn("event=request_validation_failed message=\"{}\"", message);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("VALIDATION_ERROR", message));
+        return warnAndRespond(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, message, "request_validation_failed");
     }
 
         @ExceptionHandler(ConstraintViolationException.class)
         public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
         String message = ex.getConstraintViolations().stream()
-            .map(violation -> violation.getMessage())
+            .map(jakarta.validation.ConstraintViolation::getMessage)
             .collect(Collectors.joining("; "));
 
-        LOGGER.warn("event=query_validation_failed message=\"{}\"", message);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(new ErrorResponse("VALIDATION_ERROR", message));
+        return warnAndRespond(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, message, "query_validation_failed");
         }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleMalformedBody(HttpMessageNotReadableException ex) {
-        LOGGER.warn("event=malformed_body");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("INVALID_REQUEST", "Cuerpo de solicitud inválido"));
+        return warnAndRespond(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_REQUEST",
+            "Cuerpo de solicitud inválido",
+            "malformed_body",
+            false);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String message = "Parámetro inválido: " + ex.getName();
-        LOGGER.warn("event=query_type_mismatch message=\"{}\"", message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("VALIDATION_ERROR", message));
+        return warnAndRespond(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, message, "query_type_mismatch");
     }
 
     @ExceptionHandler({AccessDeniedException.class})
     public ResponseEntity<ErrorResponse> handleForbidden() {
-        LOGGER.warn("event=auth_forbidden");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("FORBIDDEN", "Acceso denegado"));
+        return warnAndRespond(HttpStatus.FORBIDDEN, "FORBIDDEN", "Acceso denegado", "auth_forbidden", false);
     }
 
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(AuthenticationCredentialsNotFoundException ex) {
-        LOGGER.warn("event=auth_unauthorized message=\"{}\"", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponse("UNAUTHORIZED", "Credenciales inválidas"));
+        return warnAndRespond(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Credenciales inválidas", "auth_unauthorized");
     }
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ErrorResponse> handleLocked(LockedException ex) {
-        LOGGER.warn("event=auth_locked message=\"{}\"", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.LOCKED)
-                .body(new ErrorResponse("LOCKED", "Cuenta bloqueada temporalmente"));
+        return warnAndRespond(HttpStatus.LOCKED, "LOCKED", "Cuenta bloqueada temporalmente", "auth_locked");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
-        LOGGER.warn("event=bad_request message=\"{}\"", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("VALIDATION_ERROR", ex.getMessage()));
+        return warnAndRespond(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, ex.getMessage(), "bad_request");
     }
 
     @ExceptionHandler(Exception.class)

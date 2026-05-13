@@ -13,6 +13,7 @@ import com.dsw02.empleados.departamentos.exception.DepartamentoConflictException
 import com.dsw02.empleados.departamentos.service.DepartamentoService;
 import com.dsw02.empleados.EmpleadosApplication;
 import com.dsw02.empleados.entity.EstadoAcceso;
+import com.dsw02.empleados.testsupport.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -40,10 +41,7 @@ class DepartamentoCreateContractTest {
 
     @Test
     void shouldCreateDepartamentoAndReturnEstadoActivo() throws Exception {
-        DepartamentoResponse response = new DepartamentoResponse();
-        response.setId(1L);
-        response.setNombre("Ventas");
-        response.setEstado(EstadoAcceso.ACTIVO);
+                DepartamentoResponse response = TestDataFactory.departamentoResponse(1L, "Ventas", EstadoAcceso.ACTIVO);
 
         when(departamentoService.create(any(DepartamentoCreateRequest.class))).thenReturn(response);
 

@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
+    private static final String ERROR_UNAUTHORIZED = "UNAUTHORIZED";
 
     private final AuthSessionService authSessionService;
 
@@ -35,9 +36,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request,
-                                   HttpServletRequest httpServletRequest,
-                                   HttpServletResponse httpServletResponse) {
+    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest request,
+                                        HttpServletRequest httpServletRequest,
+                                        HttpServletResponse httpServletResponse) {
         try {
             HttpSession session = httpServletRequest.getSession(true);
             SessionResponse sessionResponse = authSessionService.login(request, session);
@@ -52,26 +53,26 @@ public class AuthController {
             }
 
             httpServletResponse.addHeader("Set-Cookie", sessionCookie.build().toString());
-            LOGGER.info("event=login_success principal={} authType=session-cookie", request.getEmail());
+            LOGGER.info("event=login_success authType=session-cookie");
             return ResponseEntity.ok(sessionResponse);
         } catch (AccountTemporarilyLockedException ex) {
-            LOGGER.warn("event=login_failed principal={} reason=LOCKED", request.getEmail());
+            LOGGER.warn("event=login_failed reason=LOCKED");
             return ResponseEntity.status(HttpStatus.LOCKED)
                     .body(new ErrorResponse("LOCKED", "Cuenta bloqueada temporalmente"));
         } catch (BadCredentialsException | AuthenticationCredentialsNotFoundException ex) {
-            LOGGER.warn("event=login_failed principal={} reason=UNAUTHORIZED", request.getEmail());
+            LOGGER.warn("event=login_failed reason=UNAUTHORIZED");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("UNAUTHORIZED", "Credenciales inválidas"));
+                    .body(new ErrorResponse(ERROR_UNAUTHORIZED, "Credenciales inválidas"));
         }
     }
 
     @GetMapping("/session")
-    public ResponseEntity<?> session(HttpServletRequest request) {
+    public ResponseEntity<Object> session(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null) {
             LOGGER.warn("event=session_check outcome=UNAUTHORIZED");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("UNAUTHORIZED", "Sesión no válida"));
+                    .body(new ErrorResponse(ERROR_UNAUTHORIZED, "Sesión no válida"));
         }
 
         try {
@@ -80,7 +81,7 @@ public class AuthController {
         } catch (AuthenticationCredentialsNotFoundException ex) {
             LOGGER.warn("event=session_check outcome=UNAUTHORIZED");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("UNAUTHORIZED", "Sesión no válida"));
+                    .body(new ErrorResponse(ERROR_UNAUTHORIZED, "Sesión no válida"));
         }
     }
 

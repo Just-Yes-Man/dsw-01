@@ -7,45 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dsw02.empleados.departamentos.entity.Departamento;
-import com.dsw02.empleados.departamentos.repository.DepartamentoRepository;
-import com.dsw02.empleados.EmpleadosApplication;
-import com.dsw02.empleados.entity.Empleado;
-import com.dsw02.empleados.entity.EmpleadoId;
 import com.dsw02.empleados.entity.EstadoAcceso;
-import com.dsw02.empleados.repository.BloqueoAutenticacionRepository;
-import com.dsw02.empleados.repository.EmpleadoRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.dsw02.empleados.integration.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = EmpleadosApplication.class)
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class DepartamentoUpdateIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private DepartamentoRepository departamentoRepository;
-
-    @Autowired
-    private EmpleadoRepository empleadoRepository;
-
-    @Autowired
-    private BloqueoAutenticacionRepository bloqueoAutenticacionRepository;
-
-    @BeforeEach
-    void setUp() {
-        empleadoRepository.deleteAll();
-        departamentoRepository.deleteAll();
-        bloqueoAutenticacionRepository.deleteAll();
-    }
+class DepartamentoUpdateIntegrationTest extends BaseIntegrationTest {
 
     private Departamento saveDepartamento(String nombre) {
         Departamento dep = new Departamento();
@@ -59,7 +26,7 @@ class DepartamentoUpdateIntegrationTest {
         Departamento saved = saveDepartamento("Ventas");
 
         mockMvc.perform(patch("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"Ventas Internacional"}
@@ -74,7 +41,7 @@ class DepartamentoUpdateIntegrationTest {
         Departamento saved = saveDepartamento("Ventas");
 
         mockMvc.perform(patch("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":""}
@@ -89,7 +56,7 @@ class DepartamentoUpdateIntegrationTest {
         Departamento ventas = saveDepartamento("Ventas");
 
         mockMvc.perform(patch("/api/v1/departamentos/" + ventas.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"Finanzas"}
@@ -101,7 +68,7 @@ class DepartamentoUpdateIntegrationTest {
     @Test
     void shouldReturn404WhenPatchingNonExistentId() throws Exception {
         mockMvc.perform(patch("/api/v1/departamentos/99999")
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"Cualquiera"}
@@ -114,12 +81,12 @@ class DepartamentoUpdateIntegrationTest {
         Departamento saved = saveDepartamento("TI");
 
         mockMvc.perform(delete("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+                .with(bootstrapAuth()))
                 .andExpect(status().isNoContent());
 
         // Verify soft-deleted: 404 on subsequent GET
         mockMvc.perform(patch("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123"))
+                .with(bootstrapAuth())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"nombre":"TI Nuevo"}
@@ -131,20 +98,10 @@ class DepartamentoUpdateIntegrationTest {
     void shouldReturn409WhenDeletingDepartamentoWithEmployees() throws Exception {
         Departamento saved = saveDepartamento("TI");
 
-        Empleado empleado = new Empleado();
-        empleado.setId(new EmpleadoId("EMP-", 1L));
-        empleado.setClave("EMP-1");
-        empleado.setNombre("Ana");
-        empleado.setDireccion("Calle 1");
-        empleado.setTelefono("555-1234");
-        empleado.setEmail("ana@example.com");
-        empleado.setPassword("pass");
-        empleado.setEstadoAcceso(EstadoAcceso.ACTIVO);
-        empleado.setDepartamentoId(saved.getId());
-        empleadoRepository.save(empleado);
+        createEmpleado("EMP-1", "ana@example.com", "pass", EstadoAcceso.ACTIVO, saved.getId());
 
         mockMvc.perform(delete("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+                .with(bootstrapAuth()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"));
     }
@@ -157,7 +114,7 @@ class DepartamentoUpdateIntegrationTest {
         Departamento saved = departamentoRepository.save(inactive);
 
         mockMvc.perform(delete("/api/v1/departamentos/" + saved.getId())
-                .with(httpBasic("bootstrap_admin", "bootstrap123")))
+                .with(bootstrapAuth()))
                 .andExpect(status().isNotFound());
     }
 }
