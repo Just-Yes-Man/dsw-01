@@ -1,9 +1,9 @@
-name: 03 Docker Deploy
+name: 04 Docker Deploy
 
 on:
   workflow_run:
     workflows:
-      - 02 Sonar Analysis
+      - 03 Sonar Analysis
     types:
       - completed
   workflow_dispatch:

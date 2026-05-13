@@ -1,4 +1,4 @@
-name: 02 Sonar Analysis
+name: 03 Sonar Analysis
 
 on:
   push:
