@@ -1,23 +1,34 @@
 name: 03 Sonar Analysis
 
 on:
-  push:
-    branches:
-      - 'master'
-      - 'release'
+  workflow_run:
+    workflows:
+      - 02 Cypress Tests
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   sonar-analysis:
     name: Sonar Analysis
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     env:
       SONAR_HOST_URL: https://sonarcloud.io
       SONAR_PROJECT_KEY: Just-Yes-Man_dsw-01
       SONAR_ORGANIZATION: just-yes-man
 
     steps:
-      - name: Checkout
+      - name: Checkout triggered commit
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout default branch
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
