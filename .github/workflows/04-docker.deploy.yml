@@ -12,7 +12,7 @@ jobs:
   docker-build-and-push:
     name: Build and Push ${{ matrix.service }} image
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     strategy:
       fail-fast: false
@@ -28,7 +28,15 @@ jobs:
             dockerfile: Dockerfile
 
     steps:
-      - name: Checkout
+      - name: Checkout triggered commit
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Checkout default branch
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v4
         with:
           persist-credentials: false
